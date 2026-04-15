@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="robots" content="noindex">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Binagora — Equipment Shipping Note</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+  :root {
+    --bg:#f5f4f0;--surface:#fff;--border:#d8d5cc;--accent:#1a1a2e;--accent2:#e8533a;
+    --text:#1a1a1a;--muted:#888;--green:#22c55e;--mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);font-family:var(--sans);color:var(--text);min-height:100vh;}
+  .header{background:var(--accent);color:white;padding:20px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+  .header-left{display:flex;align-items:center;gap:16px;}
+  .logo{font-family:var(--mono);font-size:18px;font-weight:500;letter-spacing:-0.5px;}
+  .doc-title{font-size:13px;color:rgba(255,255,255,0.5);font-weight:300;}
+  .numero-remito{font-family:var(--mono);background:var(--accent2);color:white;padding:6px 14px;border-radius:4px;font-size:13px;font-weight:500;}
+  .steps{display:flex;background:white;border-bottom:1px solid var(--border);padding:0 32px;overflow-x:auto;}
+  .step{padding:14px 20px;font-size:12px;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;transition:all 0.2s;text-transform:uppercase;letter-spacing:0.5px;}
+  .step.active{color:var(--accent2);border-bottom-color:var(--accent2);}
+  .step.done{color:var(--accent);}
+  .main{max-width:760px;margin:0 auto;padding:32px 20px 80px;}
+  .panel{display:none;animation:fadeIn 0.2s ease;}
+  .panel.active{display:block;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+  .section-title{font-family:var(--mono);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:20px;padding-bottom:10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+  .section-title::before{content:'';width:6px;height:6px;background:var(--accent2);border-radius:50%;flex-shrink:0;}
+  .grid{display:grid;gap:16px;margin-bottom:28px;}
+  .grid-2{grid-template-columns:1fr 1fr;}
+  .grid-3{grid-template-columns:1fr 1fr 1fr;}
+  @media(max-width:500px){.grid-2,.grid-3{grid-template-columns:1fr;}}
+  .field{display:flex;flex-direction:column;gap:6px;}
+  .field label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);}
+  .field input,.field textarea,.field select{border:1.5px solid var(--border);border-radius:6px;padding:10px 14px;font-family:var(--sans);font-size:14px;color:var(--text);background:var(--surface);transition:border-color 0.2s;width:100%;}
+  .field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--accent);}
+  .field input[readonly]{background:var(--bg);color:var(--text);cursor:default;}
+  .field textarea{resize:vertical;min-height:80px;}
+  .estado-group{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px;}
+  .estado-btn{padding:9px 18px;border:2px solid var(--border);border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;background:white;transition:all 0.15s;font-family:var(--sans);}
+  .estado-btn:hover{border-color:var(--accent);}
+  .estado-btn.sel-good{border-color:#22c55e;background:#f0fdf4;color:#15803d;}
+  .estado-btn.sel-details{border-color:#f59e0b;background:#fffbeb;color:#92400e;}
+  .estado-btn.sel-poor{border-color:var(--accent2);background:#fff5f3;color:#9f1239;}
+  .firma-wrapper{border:2px dashed var(--border);border-radius:10px;padding:16px;background:white;margin-bottom:12px;}
+  .firma-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin-bottom:10px;}
+  canvas{border:1.5px solid var(--border);border-radius:6px;display:block;cursor:crosshair;touch-action:none;background:#fafafa;width:100%;max-width:500px;height:160px;}
+  .firma-actions{display:flex;gap:8px;margin-top:8px;}
+  .btn-clear{padding:6px 14px;border:1.5px solid var(--border);border-radius:5px;background:white;font-size:12px;cursor:pointer;font-family:var(--sans);font-weight:500;color:var(--muted);transition:all 0.15s;}
+  .btn-clear:hover{border-color:var(--accent2);color:var(--accent2);}
+  .optional-toggle{display:flex;align-items:center;gap:10px;padding:12px 16px;background:white;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:20px;transition:border-color 0.2s;font-size:13px;font-weight:500;color:var(--muted);user-select:none;}
+  .optional-toggle:hover{border-color:var(--accent);color:var(--accent);}
+  .toggle-icon{font-size:16px;transition:transform 0.2s;}
+  .optional-toggle.open .toggle-icon{transform:rotate(90deg);}
+  .optional-section{display:none;}
+  .optional-section.open{display:block;animation:fadeIn 0.2s ease;}
+  .nav{display:flex;justify-content:space-between;margin-top:32px;align-items:center;gap:12px;}
+  .btn{padding:12px 28px;border-radius:7px;font-size:14px;font-weight:600;cursor:pointer;border:none;font-family:var(--sans);transition:all 0.15s;letter-spacing:0.3px;}
+  .btn-primary{background:var(--accent);color:white;}
+  .btn-primary:hover{background:#2d2d4a;}
+  .btn-secondary{background:white;color:var(--text);border:1.5px solid var(--border);}
+  .btn-secondary:hover{border-color:var(--accent);}
+  .btn-pdf{background:var(--accent2);color:white;}
+  .btn-pdf:hover{background:#d4432a;}
+  .btn-email{background:var(--green);color:white;}
+  .btn-email:hover{background:#16a34a;}
+  .btn-row{display:flex;gap:10px;flex-wrap:wrap;}
+  .email-status{font-size:12px;margin-bottom:12px;}
+  .email-status.ok{color:#15803d;}
+  .email-status.nok{color:var(--accent2);}
+  .success-overlay{display:none;position:fixed;inset:0;background:rgba(26,26,46,0.85);z-index:200;align-items:center;justify-content:center;}
+  .success-overlay.show{display:flex;}
+  .success-card{background:white;border-radius:16px;padding:48px 40px;text-align:center;max-width:380px;width:90%;}
+  .success-icon{font-size:56px;margin-bottom:16px;}
+  .success-title{font-size:22px;font-weight:700;color:var(--accent);margin-bottom:8px;}
+  .success-sub{font-size:14px;color:var(--muted);margin-bottom:28px;line-height:1.6;}
+  .btn-new{background:var(--accent);color:white;padding:12px 28px;border-radius:7px;font-size:14px;font-weight:600;cursor:pointer;border:none;font-family:var(--sans);}
+  .config-btn{position:fixed;bottom:24px;right:24px;background:var(--accent);color:white;border:none;border-radius:50%;width:44px;height:44px;font-size:18px;cursor:pointer;z-index:150;box-shadow:0 4px 12px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;}
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center;}
+  .modal-overlay.show{display:flex;}
+  .modal{background:white;border-radius:12px;padding:32px;max-width:480px;width:90%;}
+  .modal h2{font-size:18px;font-weight:700;color:var(--accent);margin-bottom:8px;}
+  .modal p{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6;}
+  .modal .field{margin-bottom:14px;}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;}
+  .btn-save{background:var(--accent);color:white;padding:10px 22px;border-radius:6px;border:none;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;}
+  .btn-cancel{background:white;color:var(--muted);padding:10px 22px;border-radius:6px;border:1.5px solid var(--border);font-family:var(--sans);font-size:13px;cursor:pointer;}
+  .instructions{background:#f0fdf4;border:1.5px solid #86efac;border-radius:8px;padding:14px 16px;font-size:12px;line-height:1.8;color:#166534;margin-bottom:16px;}
+  .instructions a{color:#15803d;font-weight:600;}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--accent);color:white;padding:12px 24px;border-radius:8px;font-size:13px;font-weight:500;opacity:0;pointer-events:none;transition:opacity 0.3s;z-index:999;white-space:nowrap;}
+  .toast.show{opacity:1;}
+  .toast.err{background:var(--accent2);}
+  .required::after{content:' *';color:var(--accent2);}
+</style>
+</head>
+<body>
+
+<div class="success-overlay" id="success-overlay">
+  <div class="success-card">
+    <div class="success-icon">✅</div>
+    <div class="success-title">Done!</div>
+    <div class="success-sub" id="success-msg">PDF downloaded and sent to <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="5c333a3a353f391c3e35323d3b332e3d723f3331">[email&#160;protected]</a></div>
+    <button class="btn-new" id="btn-new">+ New Shipping Note</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="config-modal">
+  <div class="modal">
+    <h2>⚙️ Email Setup (EmailJS)</h2>
+    <div class="instructions">
+      <strong>How to set up (free, 5 min):</strong><br>
+      1. Create a free account at <a href="https://www.emailjs.com" target="_blank">emailjs.com</a><br>
+      2. Add an <strong>Email Service</strong> (Gmail) → copy the <strong>Service ID</strong><br>
+      3. Create an <strong>Email Template</strong> → copy the <strong>Template ID</strong><br>
+      4. Go to <strong>Account → Public Key</strong> → copy it<br>
+      5. Paste the three values below and save
+    </div>
+    <div class="field"><label>Public Key</label><input type="text" id="cfg-pubkey" placeholder="e.g. aBcDeFgHiJkLmNoP"></div>
+    <div class="field"><label>Service ID</label><input type="text" id="cfg-service" placeholder="e.g. service_xxxxxxx"></div>
+    <div class="field"><label>Template ID</label><input type="text" id="cfg-template" placeholder="e.g. template_xxxxxxx"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="btn-cancel-modal">Cancel</button>
+      <button class="btn-save" id="btn-save-config">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="header">
+  <div class="header-left">
+    
+    <div class="doc-title">Equipment Shipping Note</div>
+  </div>
+  <div class="numero-remito" id="display-numero">No. ESN-0001</div>
+</div>
+
+<div class="steps">
+  <div class="step active" onclick="goTo(0)">1. Origin</div>
+  <div class="step" onclick="goTo(1)">2. Destination</div>
+  <div class="step" onclick="goTo(2)">3. Equipment</div>
+  <div class="step" onclick="goTo(3)">4. Courier</div>
+  <div class="step" onclick="goTo(4)">5. Sign & Send</div>
+</div>
+
+<div class="main">
+
+  <div class="panel active" id="panel-0">
+    <div class="section-title">Shipping Origin</div>
+    <div class="grid grid-2">
+      <div class="field"><label class="required">Shipping Note No.</label><input type="text" id="numero" placeholder="e.g. ESN-0001"></div>
+      <div class="field"><label>Date</label><input type="text" id="fecha" placeholder="MM/DD/YYYY"></div>
+    </div>
+    <div class="grid">
+      <div class="field"><label class="required">Pickup Address</label><input type="text" id="origen-dir" placeholder="Street, number, city"></div>
+    </div>
+    <div class="grid grid-2">
+      <div class="field"><label class="required">Sender Name</label><input type="text" id="origen-empresa"></div>
+      <div class="field"><label>Phone</label><input type="tel" id="origen-tel" placeholder="+1 ..."></div>
+    </div>
+    <div class="nav"><span></span><button class="btn btn-primary" id="btn-next-0">Next →</button></div>
+  </div>
+
+  <div class="panel" id="panel-1">
+    <div class="section-title">Destination</div>
+    <div class="grid">
+      <div class="field"><label class="required">Delivery Address</label><input type="text" id="dest-dir" placeholder="Street, number, city"></div>
+    </div>
+    <div class="grid grid-2">
+      <div class="field"><label class="required">Receiver Name</label><input type="text" id="dest-empresa"></div>
+      <div class="field"><label>Phone</label><input type="tel" id="dest-tel" placeholder="+1 ..."></div>
+    </div>
+    <div class="nav">
+      <button class="btn btn-secondary" id="btn-prev-1">← Back</button>
+      <button class="btn btn-primary" id="btn-next-1">Next →</button>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-2">
+    <div class="section-title">Equipment Details</div>
+    <div class="grid grid-2">
+      <div class="field"><label class="required">Equipment Type</label>
+        <select id="eq-tipo">
+          <option value="">Select...</option>
+          <option>Laptop</option><option>Desktop</option><option>Monitor</option>
+          <option>Tablet</option><option>Phone</option><option>Server</option>
+          <option>Peripheral</option><option>Other</option>
+        </select>
+      </div>
+      <div class="field"><label class="required">Brand / Model</label><input type="text" id="eq-marca" placeholder="e.g. Dell XPS 15"></div>
+    </div>
+    <div class="grid grid-2">
+      <div class="field"><label class="required">Serial Number</label><input type="text" id="eq-serie"></div>
+      <div class="field"><label>Included Accessories</label><input type="text" id="eq-accesorios" placeholder="e.g. charger, bag"></div>
+    </div>
+    <div class="section-title" style="margin-top:8px;">Device Condition</div>
+    <div class="field" style="margin-bottom:16px;">
+      <label>Device Status</label>
+      <div class="estado-group">
+        <button class="estado-btn" onclick="setEstado('Good')" id="btn-good">✓ Good</button>
+        <button class="estado-btn" onclick="setEstado('Has Details')" id="btn-details">⚠ Has Details</button>
+        <button class="estado-btn" onclick="setEstado('Poor')" id="btn-poor">✗ Poor</button>
+      </div>
+    </div>
+    <div class="grid">
+      <div class="field"><label>Condition Notes</label><textarea id="eq-obs" placeholder="Describe scratches, dents, missing parts..."></textarea></div>
+    </div>
+    <div class="nav">
+      <button class="btn btn-secondary" id="btn-prev-2">← Back</button>
+      <button class="btn btn-primary" id="btn-next-2">Next →</button>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-3">
+    <div class="section-title">Courier Information</div>
+    <div class="grid grid-2">
+      <div class="field"><label class="required">Courier Company</label><input type="text" id="cour-empresa" placeholder="e.g. FedEx, UPS, DHL..."></div>
+      <div class="field"><label class="required">Carrier Name</label><input type="text" id="cour-nombre"></div>
+    </div>
+    <div class="grid grid-3">
+      <div class="field"><label class="required">ID / Document</label><input type="text" id="cour-dni"></div>
+      <div class="field"><label>Phone</label><input type="tel" id="cour-tel"></div>
+      <div class="field"><label>Vehicle License Plate</label><input type="text" id="cour-patente"></div>
+    </div>
+    <div class="nav">
+      <button class="btn btn-secondary" id="btn-prev-3">← Back</button>
+      <button class="btn btn-primary" id="btn-next-3">Next →</button>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-4">
+    <div class="section-title">Pickup Confirmation</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px;font-style:italic;">"I hereby confirm receipt of the equipment detailed in this document for transport."</p>
+    <div class="grid grid-2" style="margin-bottom:20px;">
+      <div class="field"><label class="required">Carrier Full Name</label><input type="text" id="firma-nombre"></div>
+      <div class="field"><label>Date & Time of Pickup</label><input type="text" id="firma-datetime" placeholder="MM/DD/YYYY, HH:MM AM/PM"></div>
+    </div>
+    <div class="firma-wrapper">
+      <div class="firma-label">Carrier Signature — sign with finger or mouse</div>
+      <canvas id="sig-carrier" width="700" height="160"></canvas>
+      <div class="firma-actions"><button class="btn-clear" id="clear-carrier">🗑 Clear</button></div>
+    </div>
+
+    <div class="optional-toggle" id="delivery-toggle" id="delivery-toggle">
+      <span class="toggle-icon">▶</span>
+      <span>+ Add Delivery Confirmation <span style="font-size:11px;font-weight:400;">(optional)</span></span>
+    </div>
+    <div class="optional-section" id="delivery-section">
+      <div class="section-title">Delivery Confirmation</div>
+      <div class="grid grid-2" style="margin-bottom:20px;">
+        <div class="field"><label>Receiver Full Name</label><input type="text" id="recv-nombre"></div>
+        <div class="field"><label>Date & Time of Delivery</label><input type="text" id="recv-datetime" placeholder="e.g. 04/15/2026 14:30"></div>
+      </div>
+      <div class="firma-wrapper">
+        <div class="firma-label">Receiver Signature (at destination)</div>
+        <canvas id="sig-receiver" width="700" height="160"></canvas>
+        <div class="firma-actions"><button class="btn-clear" id="clear-receiver">🗑 Clear</button></div>
+      </div>
+    </div>
+
+    <div class="email-status nok" id="email-status-msg">⚠ Email not configured — click ⚙️ to set up (free, 5 min)</div>
+    <div class="nav">
+      <button class="btn btn-secondary" id="btn-prev-4">← Back</button>
+      <div class="btn-row">
+        <button class="btn btn-pdf" id="btn-download">⬇ Download PDF</button>
+        <button class="btn btn-email" id="btn-send">📧 Send to office</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<button class="config-btn" id="config-btn" title="Email Settings">⚙️</button>
+<div class="toast" id="toast"></div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+// ── CONFIG ──────────────────────────────────────────────────────
+const RECIPIENT = 'office' + '@' + 'binagora.com';
+let estadoDispositivo = '';
+let ejsPK  = 'zDtBJfKHwNm7YKZEb';
+let ejsSVC = 'service_radv8d8';
+let ejsTPL = 'template_oe4252l';
+
+function safeGet(k) { try { return localStorage.getItem(k) || ''; } catch(e) { return ''; } }
+function safeSet(k, v) { try { localStorage.setItem(k, v); } catch(e) {} }
+
+// ── INIT ────────────────────────────────────────────────────────
+function initApp() {
+  // Number
+  var n = 1;
+  try { n = parseInt(localStorage.getItem('bin_esn') || '0') + 1; localStorage.setItem('bin_esn', n); } catch(e) {}
+  var num = 'ESN-' + String(n).padStart(4, '0');
+  var elNum = document.getElementById('numero');
+  var elDisp = document.getElementById('display-numero');
+  if (elNum) elNum.value = num;
+  if (elDisp) elDisp.textContent = 'No. ' + num;
+
+  // Date - use fixed format without toLocaleDateString
+  var now = new Date();
+  var mm = String(now.getMonth() + 1).padStart(2, '0');
+  var dd = String(now.getDate()).padStart(2, '0');
+  var yyyy = now.getFullYear();
+  var hh = now.getHours();
+  var min = String(now.getMinutes()).padStart(2, '0');
+  var ampm = hh >= 12 ? 'PM' : 'AM';
+  hh = hh % 12 || 12;
+  var dateStr = mm + '/' + dd + '/' + yyyy;
+  var timeStr = mm + '/' + dd + '/' + yyyy + ', ' + String(hh).padStart(2,'0') + ':' + min + ' ' + ampm;
+  var elFecha = document.getElementById('fecha');
+  var elTime = document.getElementById('firma-datetime');
+  if (elFecha) elFecha.value = dateStr;
+  if (elTime) elTime.value = timeStr;
+
+  // EmailJS keys
+  ejsPK  = safeGet('ejs_pk');
+  ejsSVC = safeGet('ejs_svc');
+  ejsTPL = safeGet('ejs_tpl');
+  document.getElementById('cfg-pubkey').value  = ejsPK;
+  document.getElementById('cfg-service').value = ejsSVC;
+  document.getElementById('cfg-template').value = ejsTPL;
+  updateEmailStatus();
+
+  // Canvas
+  initCanvas('sig-carrier');
+  initCanvas('sig-receiver');
+}
+
+// Run on load
+window.onload = initApp;
+if(document.readyState !== "loading") { initApp(); }
+
+// ── EMAIL STATUS ────────────────────────────────────────────────
+function updateEmailStatus() {
+  var el = document.getElementById('email-status-msg');
+  if (ejsPK && ejsSVC && ejsTPL) {
+    el.className = 'email-status ok';
+    el.textContent = '✓ Email ready — will send to ' + RECIPIENT;
+  } else {
+    el.className = 'email-status nok';
+    el.textContent = '⚠ Email not configured — click ⚙️ to set up (free, 5 min)';
+  }
+}
+
+// ── NAVIGATION ──────────────────────────────────────────────────
+function goTo(n) {
+  var panels = document.querySelectorAll('.panel');
+  var steps  = document.querySelectorAll('.step');
+  for (var i = 0; i < panels.length; i++) panels[i].classList.remove('active');
+  for (var i = 0; i < steps.length; i++)  steps[i].classList.remove('active');
+  document.getElementById('panel-' + n).classList.add('active');
+  steps[n].classList.add('active');
+  window.scrollTo(0, 0);
+}
+function next(n) { if (!validatePanel(n)) return; goTo(n + 1); document.querySelectorAll('.step')[n].classList.add('done'); }
+function prev(n) { goTo(n - 1); }
+
+// ── VALIDATION ──────────────────────────────────────────────────
+function validatePanel(n) {
+  var req = {
+    0: ['origen-dir','origen-empresa'],
+    1: ['dest-dir','dest-empresa'],
+    2: ['eq-tipo','eq-marca','eq-serie'],
+    3: ['cour-empresa','cour-nombre','cour-dni'],
+    4: ['firma-nombre']
+  };
+  var fields = req[n] || [];
+  var ok = true;
+  for (var i = 0; i < fields.length; i++) {
+    var el = document.getElementById(fields[i]);
+    if (!el.value.trim()) {
+      el.style.borderColor = '#e8533a';
+      ok = false;
+      (function(e){ setTimeout(function(){ e.style.borderColor = ''; }, 2000); })(el);
+    }
+  }
+  if (!ok) toast('Please fill in all required fields (*)');
+  return ok;
+}
+
+// ── DEVICE STATUS ───────────────────────────────────────────────
+function setEstado(val) {
+  estadoDispositivo = val;
+  document.getElementById('btn-good').className    = 'estado-btn';
+  document.getElementById('btn-details').className = 'estado-btn';
+  document.getElementById('btn-poor').className    = 'estado-btn';
+  if (val === 'Good')        document.getElementById('btn-good').className    = 'estado-btn sel-good';
+  if (val === 'Has Details') document.getElementById('btn-details').className = 'estado-btn sel-details';
+  if (val === 'Poor')        document.getElementById('btn-poor').className    = 'estado-btn sel-poor';
+}
+
+// ── OPTIONAL DELIVERY ───────────────────────────────────────────
+function toggleDelivery() {
+  document.getElementById('delivery-toggle').classList.toggle('open');
+  document.getElementById('delivery-section').classList.toggle('open');
+}
+
+// ── CANVAS ──────────────────────────────────────────────────────
+function initCanvas(id) {
+  var c = document.getElementById(id);
+  var ctx = c.getContext('2d');
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth   = 2.5;
+  ctx.lineCap     = 'round';
+  ctx.lineJoin    = 'round';
+  var drawing = false, lx = 0, ly = 0;
+
+  function getPos(e) {
+    var r  = c.getBoundingClientRect();
+    var sx = c.width  / r.width;
+    var sy = c.height / r.height;
+    if (e.touches) return [(e.touches[0].clientX - r.left) * sx, (e.touches[0].clientY - r.top) * sy];
+    return [(e.clientX - r.left) * sx, (e.clientY - r.top) * sy];
+  }
+  function draw(x, y) { ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(x, y); ctx.stroke(); lx = x; ly = y; }
+
+  c.addEventListener('mousedown',  function(e) { drawing = true;  var p = getPos(e); lx = p[0]; ly = p[1]; });
+  c.addEventListener('mousemove',  function(e) { if (!drawing) return; var p = getPos(e); draw(p[0], p[1]); });
+  c.addEventListener('mouseup',    function()  { drawing = false; });
+  c.addEventListener('mouseleave', function()  { drawing = false; });
+  c.addEventListener('touchstart', function(e) { e.preventDefault(); drawing = true;  var p = getPos(e); lx = p[0]; ly = p[1]; }, { passive: false });
+  c.addEventListener('touchmove',  function(e) { e.preventDefault(); if (!drawing) return; var p = getPos(e); draw(p[0], p[1]); }, { passive: false });
+  c.addEventListener('touchend',   function()  { drawing = false; });
+}
+
+function clearCanvas(id) {
+  var c = document.getElementById(id);
+  c.getContext('2d').clearRect(0, 0, c.width, c.height);
+}
+function isCanvasEmpty(id) {
+  var c = document.getElementById(id);
+  var data = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+  for (var i = 0; i < data.length; i++) { if (data[i] !== 0) return false; }
+  return true;
+}
+
+// ── TOAST ───────────────────────────────────────────────────────
+function toast(msg, err) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (err ? ' err' : '') + ' show';
+  setTimeout(function() { t.className = 'toast'; }, 3200);
+}
+
+// ── BUILD PDF ───────────────────────────────────────────────────
+function buildPDF() {
+  var jsPDF = window.jspdf.jsPDF;
+  var doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  var W = 210, M = 18, y = M;
+
+  function fld(lbl, val, x, yy) {
+    doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(120,120,130);
+    doc.text(lbl.toUpperCase(), x, yy);
+    doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(26,26,26);
+    doc.text(val || '—', x, yy + 5);
+  }
+  function sec(t, yy) {
+    doc.setFillColor(26,26,46); doc.rect(M, yy, W - M*2, 6, 'F');
+    doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
+    doc.text(t.toUpperCase(), M + 4, yy + 4);
+    return yy + 10;
+  }
+
+  // Header
+  doc.setFillColor(26,26,46); doc.rect(0,0,W,22,'F');
+  doc.setFontSize(14); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
+  
+  doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(180,180,200);
+  doc.text('Equipment Shipping Note', M, 18);
+  doc.setFillColor(232,83,58); doc.rect(W-62,4,44,14,'F');
+  doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
+  doc.text(document.getElementById('numero').value, W-61, 10);
+  doc.setFontSize(8); doc.setFont('helvetica','normal');
+  doc.text(document.getElementById('fecha').value, W-61, 15);
+  y = 30;
+
+  y = sec('Shipping Origin', y);
+  fld('Pickup Address', document.getElementById('origen-dir').value, M, y);
+  y += 10;
+  fld('Sender', document.getElementById('origen-empresa').value, M, y);
+  fld('Phone',  document.getElementById('origen-tel').value, M + 100, y);
+  y += 14;
+
+  y = sec('Destination', y);
+  fld('Delivery Address', document.getElementById('dest-dir').value, M, y);
+  y += 10;
+  fld('Receiver', document.getElementById('dest-empresa').value, M, y);
+  fld('Phone',    document.getElementById('dest-tel').value, M + 100, y);
+  y += 14;
+
+  y = sec('Equipment Details', y);
+  fld('Equipment Type', document.getElementById('eq-tipo').value,  M,      y);
+  fld('Brand / Model',  document.getElementById('eq-marca').value, M + 50, y);
+  fld('Serial No.',     document.getElementById('eq-serie').value, M + 120,y);
+  y += 12;
+  fld('Included Accessories', document.getElementById('eq-accesorios').value, M, y);
+  y += 10;
+
+  doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(120,120,130);
+  doc.text('DEVICE STATUS', M, y);
+  var sc = estadoDispositivo === 'Good' ? [34,197,94] : estadoDispositivo === 'Has Details' ? [245,158,11] : [232,83,58];
+  doc.setFillColor(sc[0],sc[1],sc[2]); doc.roundedRect(M, y+2, 50, 7, 1.5, 1.5, 'F');
+  doc.setFontSize(8.5); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
+  doc.text(estadoDispositivo || '—', M+3, y+7);
+  y += 14;
+
+  var obs = document.getElementById('eq-obs').value;
+  if (obs) { fld('Condition Notes', obs, M, y); y += 12; }
+
+  y = sec('Courier Information', y);
+  fld('Courier Company', document.getElementById('cour-empresa').value, M,      y);
+  fld('Carrier Name',    document.getElementById('cour-nombre').value,  M + 60, y);
+  y += 12;
+  fld('ID / Document',  document.getElementById('cour-dni').value,     M,       y);
+  fld('Phone',          document.getElementById('cour-tel').value,     M + 65,  y);
+  fld('License Plate',  document.getElementById('cour-patente').value, M + 125, y);
+  y += 14;
+
+  y = sec('Pickup Confirmation', y);
+  doc.setFontSize(8); doc.setFont('helvetica','italic'); doc.setTextColor(100,100,110);
+  doc.text('I hereby confirm receipt of the equipment detailed in this document for transport.', M, y);
+  y += 8;
+  fld('Full Name',           document.getElementById('firma-nombre').value,   M,       y);
+  fld('Date & Time of Pickup', document.getElementById('firma-datetime').value, M + 100, y);
+  y += 12;
+  var cSig = document.getElementById('sig-carrier').toDataURL('image/png');
+  doc.addImage(cSig, 'PNG', M, y, 80, 25);
+  doc.setDrawColor(200,200,200); doc.rect(M, y, 80, 25);
+  doc.setFontSize(7.5); doc.setFont('helvetica','normal'); doc.setTextColor(150);
+  doc.text('Carrier Signature', M, y+28);
+  y += 34;
+
+  y = sec('Delivery Confirmation', y);
+  fld('Receiver Full Name',       document.getElementById('recv-nombre').value    || '—', M,       y);
+  fld('Date & Time of Delivery',  document.getElementById('recv-datetime').value  || '—', M + 100, y);
+  y += 12;
+  if (!isCanvasEmpty('sig-receiver')) {
+    var rSig = document.getElementById('sig-receiver').toDataURL('image/png');
+    doc.addImage(rSig, 'PNG', M, y, 80, 25);
+    doc.setDrawColor(200,200,200); doc.rect(M, y, 80, 25);
+    doc.setFontSize(7.5); doc.setFont('helvetica','normal'); doc.setTextColor(150);
+    doc.text('Receiver Signature', M, y+28);
+  } else {
+    doc.setDrawColor(200,200,200); doc.rect(M, y, 80, 25);
+    doc.setFontSize(8); doc.setFont('helvetica','italic'); doc.setTextColor(180);
+    doc.text('Signature pending', M+4, y+13);
+  }
+
+  doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(180);
+  doc.text('Generated by Binagora · ' + new Date().toLocaleString('en-US'), M, 287);
+  return doc;
+}
+
+// ── DOWNLOAD ────────────────────────────────────────────────────
+function downloadPDF() {
+  if (isCanvasEmpty('sig-carrier')) { toast('The carrier must sign first', true); return; }
+  buildPDF().save('ShippingNote-' + document.getElementById('numero').value + '.pdf');
+  toast('PDF downloaded ✓');
+}
+
+// ── SEND EMAIL ──────────────────────────────────────────────────
+function downloadAndSend() {
+  if (isCanvasEmpty('sig-carrier')) { toast('The carrier must sign first', true); return; }
+  if (!ejsPK || !ejsSVC || !ejsTPL) { toast('Configure EmailJS first — click ⚙️', true); return; }
+  var doc = buildPDF();
+  doc.save('ShippingNote-' + document.getElementById('numero').value + '.pdf');
+  toast('Sending...');
+  emailjs.init(ejsPK);
+  emailjs.send(ejsSVC, ejsTPL, {
+    to_email:       RECIPIENT,
+    esn_number:     document.getElementById('numero').value,
+    esn_date:       document.getElementById('fecha').value,
+    origin:         document.getElementById('origen-empresa').value,
+    destination:    document.getElementById('dest-empresa').value,
+    equipment:      document.getElementById('eq-tipo').value + ' ' + document.getElementById('eq-marca').value,
+    serial:         document.getElementById('eq-serie').value,
+    carrier_name:   document.getElementById('cour-nombre').value,
+    courier_company:document.getElementById('cour-empresa').value,
+    device_status:  estadoDispositivo || '—'
+  }).then(function() {
+    document.getElementById('success-msg').textContent = 'PDF downloaded and notification sent to ' + RECIPIENT;
+    document.getElementById('success-overlay').classList.add('show');
+  }).catch(function(err) {
+    toast('Email error: ' + (err.text || err.message || 'check your EmailJS config'), true);
+  });
+}
+
+// ── RESET ───────────────────────────────────────────────────────
+function resetForm() {
+  document.getElementById('success-overlay').classList.remove('show');
+  var inputs = document.querySelectorAll('input:not([readonly]),textarea');
+  for (var i = 0; i < inputs.length; i++) inputs[i].value = '';
+  var selects = document.querySelectorAll('select');
+  for (var i = 0; i < selects.length; i++) selects[i].selectedIndex = 0;
+  clearCanvas('sig-carrier'); clearCanvas('sig-receiver');
+  estadoDispositivo = '';
+  document.getElementById('btn-good').className    = 'estado-btn';
+  document.getElementById('btn-details').className = 'estado-btn';
+  document.getElementById('btn-poor').className    = 'estado-btn';
+  document.getElementById('delivery-toggle').classList.remove('open');
+  document.getElementById('delivery-section').classList.remove('open');
+  initApp();
+  goTo(0);
+}
+
+// ── CONFIG MODAL ────────────────────────────────────────────────
+function openModal()  { document.getElementById('config-modal').classList.add('show'); }
+function closeModal() { document.getElementById('config-modal').classList.remove('show'); }
+function saveConfig() {
+  ejsPK  = document.getElementById('cfg-pubkey').value.trim();
+  ejsSVC = document.getElementById('cfg-service').value.trim();
+  ejsTPL = document.getElementByI
