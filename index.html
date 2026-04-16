@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Binagora â Equipment Shipping Note</title>
+<title>Binagora — Equipment Shipping Note</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <style>
@@ -101,7 +101,7 @@
 
 <div class="success-overlay" id="success-overlay">
   <div class="success-card">
-    <div class="success-icon">â</div>
+    <div class="success-icon">✅</div>
     <div class="success-title">Done!</div>
     <div class="success-sub" id="success-msg">PDF downloaded and sent to office@binagora.com</div>
     <button class="btn-new" id="btn-new">+ New Shipping Note</button>
@@ -110,13 +110,13 @@
 
 <div class="modal-overlay" id="config-modal">
   <div class="modal">
-    <h2>âï¸ Email Setup (EmailJS)</h2>
+    <h2>⚙️ Email Setup (EmailJS)</h2>
     <div class="instructions">
       <strong>How to set up (free, 5 min):</strong><br>
       1. Create a free account at <a href="https://www.emailjs.com" target="_blank">emailjs.com</a><br>
-      2. Add an <strong>Email Service</strong> (Gmail) &rarr; copy the <strong>Service ID</strong><br>
-      3. Create an <strong>Email Template</strong> &rarr; copy the <strong>Template ID</strong><br>
-      4. Go to <strong>Account &rarr; Public Key</strong> &rarr; copy it<br>
+      2. Add an <strong>Email Service</strong> (Gmail) → copy the <strong>Service ID</strong><br>
+      3. Create an <strong>Email Template</strong> → copy the <strong>Template ID</strong><br>
+      4. Go to <strong>Account → Public Key</strong> → copy it<br>
       5. Paste the three values below and save
     </div>
     <div class="field"><label>Public Key</label><input type="text" id="cfg-pubkey" placeholder="e.g. aBcDeFgHiJkLmNoP"></div>
@@ -141,7 +141,7 @@
   <div class="step" onclick="goTo(1)">2. Destination</div>
   <div class="step" onclick="goTo(2)">3. Equipment</div>
   <div class="step" onclick="goTo(3)">4. Courier</div>
-  <div class="step" onclick="goTo(4)">5. Sign &amp; Send</div>
+  <div class="step" onclick="goTo(4)">5. Sign & Send</div>
 </div>
 
 <div class="main">
@@ -160,7 +160,7 @@
       <div class="field"><label class="required">Sender Name</label><input type="text" id="origen-empresa"></div>
       <div class="field"><label>Phone</label><input type="tel" id="origen-tel" placeholder="+1 ..."></div>
     </div>
-    <div class="nav"><span></span><button class="btn btn-primary" id="btn-next-0">Next &rarr;</button></div>
+    <div class="nav"><span></span><button class="btn btn-primary" id="btn-next-0">Next →</button></div>
   </div>
 
   <!-- PANEL 1: Destination -->
@@ -174,8 +174,8 @@
       <div class="field"><label>Phone</label><input type="tel" id="dest-tel" placeholder="+1 ..."></div>
     </div>
     <div class="nav">
-      <button class="btn btn-secondary" id="btn-prev-1">&larr; Back</button>
-      <button class="btn btn-primary" id="btn-next-1">Next &rarr;</button>
+      <button class="btn btn-secondary" id="btn-prev-1">← Back</button>
+      <button class="btn btn-primary" id="btn-next-1">Next →</button>
     </div>
   </div>
 
@@ -201,17 +201,17 @@
     <div class="field" style="margin-bottom:16px;">
       <label>Device Status</label>
       <div class="estado-group">
-        <button class="estado-btn" onclick="setEstado('Good')" id="btn-good">&#10003; Good</button>
-        <button class="estado-btn" onclick="setEstado('Has Details')" id="btn-details">&#9888; Has Details</button>
-        <button class="estado-btn" onclick="setEstado('Poor')" id="btn-poor">&#10007; Poor</button>
+        <button class="estado-btn" onclick="setEstado('Good')" id="btn-good">✓ Good</button>
+        <button class="estado-btn" onclick="setEstado('Has Details')" id="btn-details">⚠ Has Details</button>
+        <button class="estado-btn" onclick="setEstado('Poor')" id="btn-poor">✗ Poor</button>
       </div>
     </div>
     <div class="grid">
       <div class="field"><label>Condition Notes</label><textarea id="eq-obs" placeholder="Describe scratches, dents, missing parts..."></textarea></div>
     </div>
     <div class="nav">
-      <button class="btn btn-secondary" id="btn-prev-2">&larr; Back</button>
-      <button class="btn btn-primary" id="btn-next-2">Next &rarr;</button>
+      <button class="btn btn-secondary" id="btn-prev-2">← Back</button>
+      <button class="btn btn-primary" id="btn-next-2">Next →</button>
     </div>
   </div>
 
@@ -228,8 +228,8 @@
       <div class="field"><label>Vehicle License Plate</label><input type="text" id="cour-patente"></div>
     </div>
     <div class="nav">
-      <button class="btn btn-secondary" id="btn-prev-3">&larr; Back</button>
-      <button class="btn btn-primary" id="btn-next-3">Next &rarr;</button>
+      <button class="btn btn-secondary" id="btn-prev-3">← Back</button>
+      <button class="btn btn-primary" id="btn-next-3">Next →</button>
     </div>
   </div>
 
@@ -239,48 +239,48 @@
     <p style="font-size:13px;color:var(--muted);margin-bottom:20px;font-style:italic;">"I hereby confirm receipt of the equipment detailed in this document for transport."</p>
     <div class="grid grid-2" style="margin-bottom:20px;">
       <div class="field"><label class="required">Carrier Full Name</label><input type="text" id="firma-nombre"></div>
-      <div class="field"><label>Date &amp; Time of Pickup</label><input type="text" id="firma-datetime" readonly></div>
+      <div class="field"><label>Date & Time of Pickup</label><input type="text" id="firma-datetime" readonly></div>
     </div>
     <div class="firma-wrapper">
-      <div class="firma-label">Carrier Signature &mdash; sign with finger or mouse</div>
+      <div class="firma-label">Carrier Signature — sign with finger or mouse</div>
       <canvas id="sig-carrier" width="700" height="160"></canvas>
-      <div class="firma-actions"><button class="btn-clear" id="clear-carrier">Clear</button></div>
+      <div class="firma-actions"><button class="btn-clear" id="clear-carrier">🗑 Clear</button></div>
     </div>
 
     <div class="optional-toggle" id="delivery-toggle">
-      <span class="toggle-icon">&#9656;</span>
+      <span class="toggle-icon">▶</span>
       <span>+ Add Delivery Confirmation <span style="font-size:11px;font-weight:400;">(optional)</span></span>
     </div>
     <div class="optional-section" id="delivery-section">
       <div class="section-title">Delivery Confirmation</div>
       <div class="grid grid-2" style="margin-bottom:20px;">
         <div class="field"><label>Receiver Full Name</label><input type="text" id="recv-nombre"></div>
-        <div class="field"><label>Date &amp; Time of Delivery</label><input type="text" id="recv-datetime" placeholder="e.g. 04/15/2026 14:30"></div>
+        <div class="field"><label>Date & Time of Delivery</label><input type="text" id="recv-datetime" placeholder="e.g. 04/15/2026 14:30"></div>
       </div>
       <div class="firma-wrapper">
         <div class="firma-label">Receiver Signature (at destination)</div>
         <canvas id="sig-receiver" width="700" height="160"></canvas>
-        <div class="firma-actions"><button class="btn-clear" id="clear-receiver">Clear</button></div>
+        <div class="firma-actions"><button class="btn-clear" id="clear-receiver">🗑 Clear</button></div>
       </div>
     </div>
 
-    <div class="email-status ok" id="email-status-msg">&#10003; Email ready &mdash; will send to office@binagora.com</div>
+    <div class="email-status ok" id="email-status-msg">✓ Email ready — will send to office@binagora.com</div>
     <div class="nav">
-      <button class="btn btn-secondary" id="btn-prev-4">&larr; Back</button>
+      <button class="btn btn-secondary" id="btn-prev-4">← Back</button>
       <div class="btn-row">
-        <button class="btn btn-pdf" id="btn-download">&#11015; Download PDF</button>
-        <button class="btn btn-email" id="btn-send">&#128231; Send to office</button>
+        <button class="btn btn-pdf" id="btn-download">⬇ Download PDF</button>
+        <button class="btn btn-email" id="btn-send">📧 Send to office</button>
       </div>
     </div>
   </div>
 
 </div>
 
-<button class="config-btn" id="config-btn" title="Email Settings">&#9881;&#65039;</button>
+<button class="config-btn" id="config-btn" title="Email Settings">⚙️</button>
 <div class="toast" id="toast"></div>
 
 <script>
-// ââ CONFIG ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── CONFIG ──────────────────────────────────────────────────────
 var RECIPIENT = 'office@binagora.com';
 var estadoDispositivo = '';
 
@@ -296,7 +296,7 @@ var ejsTPL = DEFAULT_EJS_TPL;
 function safeGet(k) { try { return localStorage.getItem(k) || ''; } catch(e) { return ''; } }
 function safeSet(k, v) { try { localStorage.setItem(k, v); } catch(e) {} }
 
-// ââ INIT ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── INIT ────────────────────────────────────────────────────────
 function initApp() {
   // Auto-increment shipping note number
   var n = 1;
@@ -339,19 +339,19 @@ function initApp() {
   initCanvas('sig-receiver');
 }
 
-// ââ EMAIL STATUS ââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── EMAIL STATUS ────────────────────────────────────────────────
 function updateEmailStatus() {
   var el = document.getElementById('email-status-msg');
   if (ejsPK && ejsSVC && ejsTPL) {
     el.className = 'email-status ok';
-    el.innerHTML = '&#10003; Email ready &mdash; will send to ' + RECIPIENT;
+    el.textContent = '✓ Email ready — will send to ' + RECIPIENT;
   } else {
     el.className = 'email-status nok';
-    el.innerHTML = '&#9888; Email not configured &mdash; click &#9881;&#65039; to set up (free, 5 min)';
+    el.textContent = '⚠ Email not configured — click ⚙️ to set up (free, 5 min)';
   }
 }
 
-// ââ NAVIGATION ââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── NAVIGATION ──────────────────────────────────────────────────
 function goTo(n) {
   var panels = document.querySelectorAll('.panel');
   var steps  = document.querySelectorAll('.step');
@@ -368,7 +368,7 @@ function next(n) {
 }
 function prev(n) { goTo(n - 1); }
 
-// ââ VALIDATION ââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── VALIDATION ──────────────────────────────────────────────────
 function validatePanel(n) {
   var req = {
     0: ['origen-dir','origen-empresa'],
@@ -391,7 +391,7 @@ function validatePanel(n) {
   return ok;
 }
 
-// ââ DEVICE STATUS âââââââââââââââââââââââââââââââââââââââââââââââ
+// ── DEVICE STATUS ───────────────────────────────────────────────
 function setEstado(val) {
   estadoDispositivo = val;
   document.getElementById('btn-good').className    = 'estado-btn';
@@ -402,13 +402,13 @@ function setEstado(val) {
   if (val === 'Poor')        document.getElementById('btn-poor').className    = 'estado-btn sel-poor';
 }
 
-// ââ OPTIONAL DELIVERY âââââââââââââââââââââââââââââââââââââââââââ
+// ── OPTIONAL DELIVERY ───────────────────────────────────────────
 function toggleDelivery() {
   document.getElementById('delivery-toggle').classList.toggle('open');
   document.getElementById('delivery-section').classList.toggle('open');
 }
 
-// ââ CANVAS (Signature) ââââââââââââââââââââââââââââââââââââââââââ
+// ── CANVAS (Signature) ──────────────────────────────────────────
 function initCanvas(id) {
   var c = document.getElementById(id);
   if (!c) return;
@@ -451,7 +451,7 @@ function isCanvasEmpty(id) {
   return true;
 }
 
-// ââ TOAST âââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── TOAST ───────────────────────────────────────────────────────
 function toast(msg, err) {
   var t = document.getElementById('toast');
   t.textContent = msg;
@@ -459,7 +459,7 @@ function toast(msg, err) {
   setTimeout(function() { t.className = 'toast'; }, 3200);
 }
 
-// ââ BUILD PDF âââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── BUILD PDF ───────────────────────────────────────────────────
 function buildPDF() {
   var jsPDF = window.jspdf.jsPDF;
   var doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -470,7 +470,7 @@ function buildPDF() {
     doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(120,120,130);
     doc.text(lbl.toUpperCase(), x, yy);
     doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(26,26,26);
-    doc.text(val || '-', x, yy + 5);
+    doc.text(val || '—', x, yy + 5);
   }
   function sec(t, yy) {
     if (yy > 260) { doc.addPage(); yy = M; }
@@ -522,7 +522,7 @@ function buildPDF() {
 
   doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(120,120,130);
   doc.text('DEVICE STATUS', M, y);
-  var statusText = estadoDispositivo || '-';
+  var statusText = estadoDispositivo || '—';
   var sc = estadoDispositivo === 'Good' ? [34,197,94] : estadoDispositivo === 'Has Details' ? [245,158,11] : [232,83,58];
   if (estadoDispositivo) {
     doc.setFillColor(sc[0],sc[1],sc[2]);
@@ -531,7 +531,7 @@ function buildPDF() {
     doc.text(statusText, M+3, y+7);
   } else {
     doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(26,26,26);
-    doc.text('-', M, y+7);
+    doc.text('—', M, y+7);
   }
   y += 14;
 
@@ -560,7 +560,7 @@ function buildPDF() {
   doc.setFontSize(8); doc.setFont('helvetica','italic'); doc.setTextColor(100,100,110);
   doc.text('I hereby confirm receipt of the equipment detailed in this document for transport.', M, y);
   y += 8;
-  fld('Full Name',            document.getElementById('firma-nombre').value,    M, y);
+  fld('Full Name',             document.getElementById('firma-nombre').value,    M, y);
   fld('Date & Time of Pickup', document.getElementById('firma-datetime').value, M + 95, y);
   y += 12;
 
@@ -578,8 +578,8 @@ function buildPDF() {
   y = sec('Delivery Confirmation', y);
   var recvName = document.getElementById('recv-nombre').value;
   var recvDate = document.getElementById('recv-datetime').value;
-  fld('Receiver Full Name',      recvName || '-', M, y);
-  fld('Date & Time of Delivery', recvDate || '-', M + 95, y);
+  fld('Receiver Full Name',      recvName || '—', M, y);
+  fld('Date & Time of Delivery', recvDate || '—', M + 95, y);
   y += 12;
 
   if (!isCanvasEmpty('sig-receiver')) {
@@ -596,24 +596,24 @@ function buildPDF() {
 
   // Footer
   doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(180,180,180);
-  doc.text('Generated by Binagora - ' + new Date().toLocaleString('en-US'), M, 287);
+  doc.text('Generated by Binagora · ' + new Date().toLocaleString('en-US'), M, 287);
   return doc;
 }
 
-// ââ DOWNLOAD ââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── DOWNLOAD ────────────────────────────────────────────────────
 function downloadPDF() {
   if (!validatePanel(4)) return;
   if (isCanvasEmpty('sig-carrier')) { toast('The carrier must sign first', true); return; }
   var filename = 'ShippingNote-' + document.getElementById('numero').value + '.pdf';
   buildPDF().save(filename);
-  toast('PDF downloaded!');
+  toast('PDF downloaded ✓');
 }
 
-// ââ SEND EMAIL ââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── SEND EMAIL ──────────────────────────────────────────────────
 function downloadAndSend() {
   if (!validatePanel(4)) return;
   if (isCanvasEmpty('sig-carrier')) { toast('The carrier must sign first', true); return; }
-  if (!ejsPK || !ejsSVC || !ejsTPL) { toast('Configure EmailJS first', true); return; }
+  if (!ejsPK || !ejsSVC || !ejsTPL) { toast('Configure EmailJS first — click ⚙️', true); return; }
 
   var filename = 'ShippingNote-' + document.getElementById('numero').value + '.pdf';
   var doc = buildPDF();
@@ -627,11 +627,11 @@ function downloadAndSend() {
     esn_date:        document.getElementById('fecha').value,
     origin:          document.getElementById('origen-empresa').value,
     destination:     document.getElementById('dest-empresa').value,
-    equipment:       document.getElementById('eq-tipo').value + ' - ' + document.getElementById('eq-marca').value,
+    equipment:       document.getElementById('eq-tipo').value + ' — ' + document.getElementById('eq-marca').value,
     serial:          document.getElementById('eq-serie').value,
     carrier_name:    document.getElementById('cour-nombre').value,
     courier_company: document.getElementById('cour-empresa').value,
-    device_status:   estadoDispositivo || '-'
+    device_status:   estadoDispositivo || '—'
   }).then(function() {
     document.getElementById('success-msg').textContent = 'PDF downloaded and notification sent to ' + RECIPIENT;
     document.getElementById('success-overlay').classList.add('show');
@@ -641,7 +641,7 @@ function downloadAndSend() {
   });
 }
 
-// ââ RESET âââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── RESET ───────────────────────────────────────────────────────
 function resetForm() {
   document.getElementById('success-overlay').classList.remove('show');
   var inputs = document.querySelectorAll('input:not([readonly]),textarea');
@@ -660,7 +660,7 @@ function resetForm() {
   goTo(0);
 }
 
-// ââ CONFIG MODAL ââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── CONFIG MODAL ────────────────────────────────────────────────
 function openModal()  { document.getElementById('config-modal').classList.add('show'); }
 function closeModal() { document.getElementById('config-modal').classList.remove('show'); }
 function saveConfig() {
@@ -672,10 +672,10 @@ function saveConfig() {
   safeSet('ejs_tpl', ejsTPL);
   updateEmailStatus();
   closeModal();
-  toast('Email settings saved!');
+  toast('Email settings saved ✓');
 }
 
-// ââ EVENT LISTENERS âââââââââââââââââââââââââââââââââââââââââââââ
+// ── EVENT LISTENERS ─────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
   initApp();
 
