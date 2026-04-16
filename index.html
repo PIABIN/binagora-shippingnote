@@ -114,9 +114,9 @@
     <div class="instructions">
       <strong>How to set up (free, 5 min):</strong><br>
       1. Create a free account at <a href="https://www.emailjs.com" target="_blank">emailjs.com</a><br>
-      2. Add an <strong>Email Service</strong> (Gmail) â copy the <strong>Service ID</strong><br>
-      3. Create an <strong>Email Template</strong> â copy the <strong>Template ID</strong><br>
-      4. Go to <strong>Account â Public Key</strong> â copy it<br>
+      2. Add an <strong>Email Service</strong> (Gmail) &rarr; copy the <strong>Service ID</strong><br>
+      3. Create an <strong>Email Template</strong> &rarr; copy the <strong>Template ID</strong><br>
+      4. Go to <strong>Account &rarr; Public Key</strong> &rarr; copy it<br>
       5. Paste the three values below and save
     </div>
     <div class="field"><label>Public Key</label><input type="text" id="cfg-pubkey" placeholder="e.g. aBcDeFgHiJkLmNoP"></div>
@@ -141,7 +141,7 @@
   <div class="step" onclick="goTo(1)">2. Destination</div>
   <div class="step" onclick="goTo(2)">3. Equipment</div>
   <div class="step" onclick="goTo(3)">4. Courier</div>
-  <div class="step" onclick="goTo(4)">5. Sign & Send</div>
+  <div class="step" onclick="goTo(4)">5. Sign &amp; Send</div>
 </div>
 
 <div class="main">
@@ -160,7 +160,7 @@
       <div class="field"><label class="required">Sender Name</label><input type="text" id="origen-empresa"></div>
       <div class="field"><label>Phone</label><input type="tel" id="origen-tel" placeholder="+1 ..."></div>
     </div>
-    <div class="nav"><span></span><button class="btn btn-primary" id="btn-next-0">Next â</button></div>
+    <div class="nav"><span></span><button class="btn btn-primary" id="btn-next-0">Next &rarr;</button></div>
   </div>
 
   <!-- PANEL 1: Destination -->
@@ -174,8 +174,8 @@
       <div class="field"><label>Phone</label><input type="tel" id="dest-tel" placeholder="+1 ..."></div>
     </div>
     <div class="nav">
-      <button class="btn btn-secondary" id="btn-prev-1">â Back</button>
-      <button class="btn btn-primary" id="btn-next-1">Next â</button>
+      <button class="btn btn-secondary" id="btn-prev-1">&larr; Back</button>
+      <button class="btn btn-primary" id="btn-next-1">Next &rarr;</button>
     </div>
   </div>
 
@@ -201,17 +201,17 @@
     <div class="field" style="margin-bottom:16px;">
       <label>Device Status</label>
       <div class="estado-group">
-        <button class="estado-btn" onclick="setEstado('Good')" id="btn-good">â Good</button>
-        <button class="estado-btn" onclick="setEstado('Has Details')" id="btn-details">â  Has Details</button>
-        <button class="estado-btn" onclick="setEstado('Poor')" id="btn-poor">â Poor</button>
+        <button class="estado-btn" onclick="setEstado('Good')" id="btn-good">&#10003; Good</button>
+        <button class="estado-btn" onclick="setEstado('Has Details')" id="btn-details">&#9888; Has Details</button>
+        <button class="estado-btn" onclick="setEstado('Poor')" id="btn-poor">&#10007; Poor</button>
       </div>
     </div>
     <div class="grid">
       <div class="field"><label>Condition Notes</label><textarea id="eq-obs" placeholder="Describe scratches, dents, missing parts..."></textarea></div>
     </div>
     <div class="nav">
-      <button class="btn btn-secondary" id="btn-prev-2">â Back</button>
-      <button class="btn btn-primary" id="btn-next-2">Next â</button>
+      <button class="btn btn-secondary" id="btn-prev-2">&larr; Back</button>
+      <button class="btn btn-primary" id="btn-next-2">Next &rarr;</button>
     </div>
   </div>
 
@@ -228,8 +228,8 @@
       <div class="field"><label>Vehicle License Plate</label><input type="text" id="cour-patente"></div>
     </div>
     <div class="nav">
-      <button class="btn btn-secondary" id="btn-prev-3">â Back</button>
-      <button class="btn btn-primary" id="btn-next-3">Next â</button>
+      <button class="btn btn-secondary" id="btn-prev-3">&larr; Back</button>
+      <button class="btn btn-primary" id="btn-next-3">Next &rarr;</button>
     </div>
   </div>
 
@@ -239,44 +239,44 @@
     <p style="font-size:13px;color:var(--muted);margin-bottom:20px;font-style:italic;">"I hereby confirm receipt of the equipment detailed in this document for transport."</p>
     <div class="grid grid-2" style="margin-bottom:20px;">
       <div class="field"><label class="required">Carrier Full Name</label><input type="text" id="firma-nombre"></div>
-      <div class="field"><label>Date & Time of Pickup</label><input type="text" id="firma-datetime" readonly></div>
+      <div class="field"><label>Date &amp; Time of Pickup</label><input type="text" id="firma-datetime" readonly></div>
     </div>
     <div class="firma-wrapper">
-      <div class="firma-label">Carrier Signature â sign with finger or mouse</div>
+      <div class="firma-label">Carrier Signature &mdash; sign with finger or mouse</div>
       <canvas id="sig-carrier" width="700" height="160"></canvas>
-      <div class="firma-actions"><button class="btn-clear" id="clear-carrier">ð Clear</button></div>
+      <div class="firma-actions"><button class="btn-clear" id="clear-carrier">Clear</button></div>
     </div>
 
     <div class="optional-toggle" id="delivery-toggle">
-      <span class="toggle-icon">â¶</span>
+      <span class="toggle-icon">&#9656;</span>
       <span>+ Add Delivery Confirmation <span style="font-size:11px;font-weight:400;">(optional)</span></span>
     </div>
     <div class="optional-section" id="delivery-section">
       <div class="section-title">Delivery Confirmation</div>
       <div class="grid grid-2" style="margin-bottom:20px;">
         <div class="field"><label>Receiver Full Name</label><input type="text" id="recv-nombre"></div>
-        <div class="field"><label>Date & Time of Delivery</label><input type="text" id="recv-datetime" placeholder="e.g. 04/15/2026 14:30"></div>
+        <div class="field"><label>Date &amp; Time of Delivery</label><input type="text" id="recv-datetime" placeholder="e.g. 04/15/2026 14:30"></div>
       </div>
       <div class="firma-wrapper">
         <div class="firma-label">Receiver Signature (at destination)</div>
         <canvas id="sig-receiver" width="700" height="160"></canvas>
-        <div class="firma-actions"><button class="btn-clear" id="clear-receiver">ð Clear</button></div>
+        <div class="firma-actions"><button class="btn-clear" id="clear-receiver">Clear</button></div>
       </div>
     </div>
 
-    <div class="email-status ok" id="email-status-msg">â Email ready â will send to office@binagora.com</div>
+    <div class="email-status ok" id="email-status-msg">&#10003; Email ready &mdash; will send to office@binagora.com</div>
     <div class="nav">
-      <button class="btn btn-secondary" id="btn-prev-4">â Back</button>
+      <button class="btn btn-secondary" id="btn-prev-4">&larr; Back</button>
       <div class="btn-row">
-        <button class="btn btn-pdf" id="btn-download">â¬ Download PDF</button>
-        <button class="btn btn-email" id="btn-send">ð§ Send to office</button>
+        <button class="btn btn-pdf" id="btn-download">&#11015; Download PDF</button>
+        <button class="btn btn-email" id="btn-send">&#128231; Send to office</button>
       </div>
     </div>
   </div>
 
 </div>
 
-<button class="config-btn" id="config-btn" title="Email Settings">âï¸</button>
+<button class="config-btn" id="config-btn" title="Email Settings">&#9881;&#65039;</button>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -344,10 +344,10 @@ function updateEmailStatus() {
   var el = document.getElementById('email-status-msg');
   if (ejsPK && ejsSVC && ejsTPL) {
     el.className = 'email-status ok';
-    el.textContent = 'â Email ready â will send to ' + RECIPIENT;
+    el.innerHTML = '&#10003; Email ready &mdash; will send to ' + RECIPIENT;
   } else {
     el.className = 'email-status nok';
-    el.textContent = 'â  Email not configured â click âï¸ to set up (free, 5 min)';
+    el.innerHTML = '&#9888; Email not configured &mdash; click &#9881;&#65039; to set up (free, 5 min)';
   }
 }
 
@@ -470,7 +470,7 @@ function buildPDF() {
     doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(120,120,130);
     doc.text(lbl.toUpperCase(), x, yy);
     doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(26,26,26);
-    doc.text(val || 'â', x, yy + 5);
+    doc.text(val || '-', x, yy + 5);
   }
   function sec(t, yy) {
     if (yy > 260) { doc.addPage(); yy = M; }
@@ -522,7 +522,7 @@ function buildPDF() {
 
   doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(120,120,130);
   doc.text('DEVICE STATUS', M, y);
-  var statusText = estadoDispositivo || 'â';
+  var statusText = estadoDispositivo || '-';
   var sc = estadoDispositivo === 'Good' ? [34,197,94] : estadoDispositivo === 'Has Details' ? [245,158,11] : [232,83,58];
   if (estadoDispositivo) {
     doc.setFillColor(sc[0],sc[1],sc[2]);
@@ -531,7 +531,7 @@ function buildPDF() {
     doc.text(statusText, M+3, y+7);
   } else {
     doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(26,26,26);
-    doc.text('â', M, y+7);
+    doc.text('-', M, y+7);
   }
   y += 14;
 
@@ -560,7 +560,7 @@ function buildPDF() {
   doc.setFontSize(8); doc.setFont('helvetica','italic'); doc.setTextColor(100,100,110);
   doc.text('I hereby confirm receipt of the equipment detailed in this document for transport.', M, y);
   y += 8;
-  fld('Full Name',             document.getElementById('firma-nombre').value,    M, y);
+  fld('Full Name',            document.getElementById('firma-nombre').value,    M, y);
   fld('Date & Time of Pickup', document.getElementById('firma-datetime').value, M + 95, y);
   y += 12;
 
@@ -578,8 +578,8 @@ function buildPDF() {
   y = sec('Delivery Confirmation', y);
   var recvName = document.getElementById('recv-nombre').value;
   var recvDate = document.getElementById('recv-datetime').value;
-  fld('Receiver Full Name',      recvName || 'â', M, y);
-  fld('Date & Time of Delivery', recvDate || 'â', M + 95, y);
+  fld('Receiver Full Name',      recvName || '-', M, y);
+  fld('Date & Time of Delivery', recvDate || '-', M + 95, y);
   y += 12;
 
   if (!isCanvasEmpty('sig-receiver')) {
@@ -596,7 +596,7 @@ function buildPDF() {
 
   // Footer
   doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(180,180,180);
-  doc.text('Generated by Binagora Â· ' + new Date().toLocaleString('en-US'), M, 287);
+  doc.text('Generated by Binagora - ' + new Date().toLocaleString('en-US'), M, 287);
   return doc;
 }
 
@@ -606,14 +606,14 @@ function downloadPDF() {
   if (isCanvasEmpty('sig-carrier')) { toast('The carrier must sign first', true); return; }
   var filename = 'ShippingNote-' + document.getElementById('numero').value + '.pdf';
   buildPDF().save(filename);
-  toast('PDF downloaded â');
+  toast('PDF downloaded!');
 }
 
 // ââ SEND EMAIL ââââââââââââââââââââââââââââââââââââââââââââââââââ
 function downloadAndSend() {
   if (!validatePanel(4)) return;
   if (isCanvasEmpty('sig-carrier')) { toast('The carrier must sign first', true); return; }
-  if (!ejsPK || !ejsSVC || !ejsTPL) { toast('Configure EmailJS first â click âï¸', true); return; }
+  if (!ejsPK || !ejsSVC || !ejsTPL) { toast('Configure EmailJS first', true); return; }
 
   var filename = 'ShippingNote-' + document.getElementById('numero').value + '.pdf';
   var doc = buildPDF();
@@ -627,11 +627,11 @@ function downloadAndSend() {
     esn_date:        document.getElementById('fecha').value,
     origin:          document.getElementById('origen-empresa').value,
     destination:     document.getElementById('dest-empresa').value,
-    equipment:       document.getElementById('eq-tipo').value + ' â ' + document.getElementById('eq-marca').value,
+    equipment:       document.getElementById('eq-tipo').value + ' - ' + document.getElementById('eq-marca').value,
     serial:          document.getElementById('eq-serie').value,
     carrier_name:    document.getElementById('cour-nombre').value,
     courier_company: document.getElementById('cour-empresa').value,
-    device_status:   estadoDispositivo || 'â'
+    device_status:   estadoDispositivo || '-'
   }).then(function() {
     document.getElementById('success-msg').textContent = 'PDF downloaded and notification sent to ' + RECIPIENT;
     document.getElementById('success-overlay').classList.add('show');
@@ -672,7 +672,7 @@ function saveConfig() {
   safeSet('ejs_tpl', ejsTPL);
   updateEmailStatus();
   closeModal();
-  toast('Email settings saved â');
+  toast('Email settings saved!');
 }
 
 // ââ EVENT LISTENERS âââââââââââââââââââââââââââââââââââââââââââââ
