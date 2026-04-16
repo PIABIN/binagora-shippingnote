@@ -95,6 +95,26 @@
   .toast.show{opacity:1;}
   .toast.err{background:var(--accent2);}
   .required::after{content:' *';color:var(--accent2);}
+  /* ── RECEIVE MODE ── */
+  .receive-mode .steps, .receive-mode .config-btn, .receive-mode #panel-0,
+  .receive-mode #panel-1, .receive-mode #panel-2, .receive-mode #panel-3,
+  .receive-mode #panel-4 { display:none!important; }
+  .receive-panel{display:none;animation:fadeIn 0.3s ease;}
+  .receive-mode .receive-panel{display:block;}
+  .recv-summary{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:20px 24px;margin-bottom:20px;}
+  .recv-summary h3{font-family:var(--mono);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent2);margin-bottom:14px;}
+  .recv-row{display:flex;gap:32px;margin-bottom:10px;flex-wrap:wrap;}
+  .recv-field{flex:1;min-width:140px;}
+  .recv-field .lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);}
+  .recv-field .val{font-size:14px;color:var(--text);margin-top:3px;}
+  .recv-status-badge{display:inline-block;padding:4px 14px;border-radius:4px;font-size:12px;font-weight:600;color:white;margin-top:3px;}
+  .recv-sig-img{border:1.5px solid var(--border);border-radius:6px;max-width:300px;height:80px;object-fit:contain;background:#fafafa;display:block;margin-top:6px;}
+  .recv-confirmed-banner{background:#f0fdf4;border:1.5px solid #86efac;border-radius:8px;padding:16px 20px;margin-bottom:20px;color:#166534;font-size:14px;font-weight:500;text-align:center;}
+  .recv-loading{text-align:center;padding:60px 20px;color:var(--muted);font-size:16px;}
+  .recv-error{text-align:center;padding:60px 20px;color:var(--accent2);font-size:16px;}
+  .link-box{background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:12px 16px;margin:12px 0;display:flex;align-items:center;gap:10px;}
+  .link-box input{flex:1;border:none;background:transparent;font-family:var(--mono);font-size:12px;color:var(--text);outline:none;}
+  .link-box button{padding:6px 14px;background:var(--accent);color:white;border:none;border-radius:5px;font-size:12px;cursor:pointer;font-family:var(--sans);font-weight:500;white-space:nowrap;}
 </style>
 </head>
 <body>
@@ -122,6 +142,11 @@
     <div class="field"><label>Public Key</label><input type="text" id="cfg-pubkey" placeholder="e.g. aBcDeFgHiJkLmNoP"></div>
     <div class="field"><label>Service ID</label><input type="text" id="cfg-service" placeholder="e.g. service_xxxxxxx"></div>
     <div class="field"><label>Template ID</label><input type="text" id="cfg-template" placeholder="e.g. template_xxxxxxx"></div>
+    <div style="border-top:1px solid var(--border);margin:16px 0 12px;padding-top:14px;">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin-bottom:8px;">Receiver Link (optional)</div>
+      <div class="field"><label>Google Apps Script URL</label><input type="text" id="cfg-apps-script" placeholder="https://script.google.com/macros/s/.../exec"></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;">Enables sharing a link so the receiver can sign delivery confirmation.</div>
+    </div>
     <div class="modal-actions">
       <button class="btn-cancel" id="btn-cancel-modal">Cancel</button>
       <button class="btn-save" id="btn-save-config">Save</button>
@@ -276,6 +301,90 @@
 
 </div>
 
+  <!-- RECEIVE MODE PANEL -->
+  <div class="receive-panel" id="receive-panel">
+    <div id="recv-loading" class="recv-loading">Loading shipping note data...</div>
+    <div id="recv-error" class="recv-error" style="display:none;"></div>
+    <div id="recv-content" style="display:none;">
+      <div id="recv-confirmed-banner" class="recv-confirmed-banner" style="display:none;">&#10004; Delivery already confirmed</div>
+
+      <div class="recv-summary">
+        <h3>Shipping Origin</h3>
+        <div class="recv-row">
+          <div class="recv-field"><div class="lbl">Pickup Address</div><div class="val" id="rv-origin-addr">-</div></div>
+        </div>
+        <div class="recv-row">
+          <div class="recv-field"><div class="lbl">Sender</div><div class="val" id="rv-sender">-</div></div>
+          <div class="recv-field"><div class="lbl">Phone</div><div class="val" id="rv-sender-phone">-</div></div>
+        </div>
+      </div>
+
+      <div class="recv-summary">
+        <h3>Destination</h3>
+        <div class="recv-row">
+          <div class="recv-field"><div class="lbl">Delivery Address</div><div class="val" id="rv-dest-addr">-</div></div>
+        </div>
+        <div class="recv-row">
+          <div class="recv-field"><div class="lbl">Receiver</div><div class="val" id="rv-receiver">-</div></div>
+          <div class="recv-field"><div class="lbl">Phone</div><div class="val" id="rv-receiver-phone">-</div></div>
+        </div>
+      </div>
+
+      <div class="recv-summary">
+        <h3>Equipment Details</h3>
+        <div class="recv-row">
+          <div class="recv-field"><div class="lbl">Type</div><div class="val" id="rv-eq-type">-</div></div>
+          <div class="recv-field"><div class="lbl">Brand / Model</div><div class="val" id="rv-eq-brand">-</div></div>
+        </div>
+        <div class="recv-row">
+          <div class="recv-field"><div class="lbl">Serial No.</div><div class="val" id="rv-eq-serial">-</div></div>
+          <div class="recv-field"><div class="lbl">Accessories</div><div class="val" id="rv-eq-accessories">-</div></div>
+        </div>
+        <div class="recv-row">
+          <div class="recv-field"><div class="lbl">Device Status</div><div id="rv-eq-status">-</div></div>
+        </div>
+      </div>
+
+      <div class="recv-summary">
+        <h3>Courier &amp; Pickup</h3>
+        <div class="recv-row">
+          <div class="recv-field"><div class="lbl">Courier Company</div><div class="val" id="rv-courier">-</div></div>
+          <div class="recv-field"><div class="lbl">Carrier Name</div><div class="val" id="rv-carrier">-</div></div>
+        </div>
+        <div class="recv-row">
+          <div class="recv-field"><div class="lbl">Pickup Date &amp; Time</div><div class="val" id="rv-pickup-dt">-</div></div>
+        </div>
+        <div class="recv-row">
+          <div class="recv-field">
+            <div class="lbl">Carrier Signature</div>
+            <img id="rv-carrier-sig" class="recv-sig-img" alt="Carrier signature">
+          </div>
+        </div>
+      </div>
+
+      <!-- Delivery confirmation form -->
+      <div id="recv-form-section">
+        <div class="section-title">Delivery Confirmation</div>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:20px;font-style:italic;">"I confirm receipt of the equipment described above in the condition noted."</p>
+        <div class="grid grid-2" style="margin-bottom:20px;">
+          <div class="field"><label class="required">Your Full Name</label><input type="text" id="rv-recv-name"></div>
+          <div class="field"><label>Date &amp; Time of Delivery</label><input type="text" id="rv-recv-datetime" readonly></div>
+        </div>
+        <div class="firma-wrapper">
+          <div class="firma-label">Your Signature &mdash; sign with finger or mouse</div>
+          <canvas id="sig-recv-confirm" width="700" height="160"></canvas>
+          <div class="firma-actions"><button class="btn-clear" id="clear-recv-confirm">&#128465; Clear</button></div>
+        </div>
+        <div style="margin-top:24px;display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-email" id="btn-confirm-delivery">&#10004; Confirm Delivery</button>
+          <button class="btn btn-pdf" id="btn-recv-pdf">&#11015; Download PDF</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
 <button class="config-btn" id="config-btn" title="Email Settings">&#9881;&#65039;</button>
 <div class="toast" id="toast"></div>
 
@@ -283,6 +392,9 @@
 // ── CONFIG ──────────────────────────────────────────────────────
 var RECIPIENT = 'office@binagora.com';
 var estadoDispositivo = '';
+var APPS_SCRIPT_URL = ''; // Set via config modal or localStorage
+var receiveMode = false;
+var receiveData = null;
 
 // Default EmailJS keys (hardcoded for Binagora)
 var DEFAULT_EJS_PK  = 'zDtBJfKHwNm7YKZEb';
@@ -332,6 +444,7 @@ function initApp() {
   document.getElementById('cfg-pubkey').value  = ejsPK;
   document.getElementById('cfg-service').value = ejsSVC;
   document.getElementById('cfg-template').value = ejsTPL;
+  document.getElementById('cfg-apps-script').value = getAppsScriptUrl();
   updateEmailStatus();
 
   // Init signature canvases
@@ -648,7 +761,14 @@ function downloadAndSend() {
     pdf_attachment:  pdfBase64,
     pdf_filename:    filename
   }).then(function() {
-    document.getElementById('success-msg').textContent = 'PDF downloaded and sent with attachment to ' + RECIPIENT;
+    // Save to Google Sheet (if configured)
+    saveToSheet();
+    // Show success with receive link
+    if (getAppsScriptUrl()) {
+      showReceiveLink();
+    } else {
+      document.getElementById('success-msg').textContent = 'PDF downloaded and sent with attachment to ' + RECIPIENT;
+    }
     document.getElementById('success-overlay').classList.add('show');
   }).catch(function(err) {
     console.error('EmailJS error:', err);
@@ -685,13 +805,331 @@ function saveConfig() {
   safeSet('ejs_pk',  ejsPK);
   safeSet('ejs_svc', ejsSVC);
   safeSet('ejs_tpl', ejsTPL);
+  // Save Apps Script URL
+  var asUrl = document.getElementById('cfg-apps-script').value.trim();
+  APPS_SCRIPT_URL = asUrl;
+  safeSet('apps_script_url', asUrl);
   updateEmailStatus();
   closeModal();
-  toast('Email settings saved OK');
+  toast('Settings saved OK');
+}
+
+// ── GOOGLE SHEETS BACKEND ───────────────────────────────────────
+function getAppsScriptUrl() {
+  if (APPS_SCRIPT_URL) return APPS_SCRIPT_URL;
+  var stored = safeGet('apps_script_url');
+  if (stored) { APPS_SCRIPT_URL = stored; return stored; }
+  return '';
+}
+
+function saveToSheet() {
+  var url = getAppsScriptUrl();
+  if (!url) return; // silently skip if not configured
+  var sigData = '';
+  try {
+    if (!isCanvasEmpty('sig-carrier')) {
+      sigData = document.getElementById('sig-carrier').toDataURL('image/png');
+    }
+  } catch(e) {}
+  var payload = {
+    action: 'save',
+    data: {
+      esn: document.getElementById('numero').value,
+      date: document.getElementById('fecha').value,
+      originAddress: document.getElementById('origen-dir').value,
+      sender: document.getElementById('origen-empresa').value,
+      senderPhone: document.getElementById('origen-tel').value,
+      destAddress: document.getElementById('dest-dir').value,
+      receiver: document.getElementById('dest-empresa').value,
+      receiverPhone: document.getElementById('dest-tel').value,
+      eqType: document.getElementById('eq-tipo').value,
+      eqBrand: document.getElementById('eq-marca').value,
+      eqSerial: document.getElementById('eq-serie').value,
+      eqAccessories: document.getElementById('eq-accesorios').value,
+      deviceStatus: estadoDispositivo || '-',
+      conditionNotes: document.getElementById('eq-obs').value,
+      courierCompany: document.getElementById('cour-empresa').value,
+      carrierName: document.getElementById('cour-nombre').value,
+      carrierId: document.getElementById('cour-dni').value,
+      carrierPhone: document.getElementById('cour-tel').value,
+      licensePlate: document.getElementById('cour-patente').value,
+      carrierSignature: sigData,
+      pickupDatetime: document.getElementById('firma-datetime').value
+    }
+  };
+  fetch(url, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(payload)
+  }).catch(function(e) { console.log('Sheet save error:', e); });
+}
+
+function getReceiveLink() {
+  var esn = document.getElementById('numero').value;
+  var base = window.location.origin + window.location.pathname;
+  return base + '?mode=receive&id=' + encodeURIComponent(esn);
+}
+
+function showReceiveLink() {
+  var url = getAppsScriptUrl();
+  if (!url) return; // don't show link if backend not configured
+  var link = getReceiveLink();
+  var msgEl = document.getElementById('success-msg');
+  msgEl.innerHTML = 'PDF downloaded and sent to ' + RECIPIENT +
+    '<br><br><span style="font-size:12px;color:#888;">Receiver link (share with recipient):</span>' +
+    '<div class="link-box"><input type="text" value="' + link + '" id="recv-link-input" readonly>' +
+    '<button onclick="copyRecvLink()">Copy</button></div>';
+}
+
+function copyRecvLink() {
+  var input = document.getElementById('recv-link-input');
+  if (input) {
+    input.select();
+    navigator.clipboard.writeText(input.value).then(function() {
+      toast('Link copied!');
+    }).catch(function() {
+      document.execCommand('copy');
+      toast('Link copied!');
+    });
+  }
+}
+
+// ── RECEIVE MODE ────────────────────────────────────────────────
+function checkReceiveMode() {
+  var params = new URLSearchParams(window.location.search);
+  if (params.get('mode') === 'receive' && params.get('id')) {
+    receiveMode = true;
+    document.body.classList.add('receive-mode');
+    var esnId = params.get('id');
+    document.getElementById('display-numero').textContent = 'No. ' + esnId;
+    loadReceiveData(esnId);
+    return true;
+  }
+  return false;
+}
+
+function loadReceiveData(esnId) {
+  var url = getAppsScriptUrl();
+  if (!url) {
+    document.getElementById('recv-loading').style.display = 'none';
+    document.getElementById('recv-error').style.display = 'block';
+    document.getElementById('recv-error').textContent = 'Backend not configured. Ask the sender to set up the Apps Script URL.';
+    return;
+  }
+  fetch(url + '?id=' + encodeURIComponent(esnId))
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+      document.getElementById('recv-loading').style.display = 'none';
+      if (res.error) {
+        document.getElementById('recv-error').style.display = 'block';
+        document.getElementById('recv-error').textContent = 'Error: ' + res.error;
+        return;
+      }
+      receiveData = res.data;
+      populateReceiveView(res.data);
+      document.getElementById('recv-content').style.display = 'block';
+    })
+    .catch(function(err) {
+      document.getElementById('recv-loading').style.display = 'none';
+      document.getElementById('recv-error').style.display = 'block';
+      document.getElementById('recv-error').textContent = 'Could not load shipping note. Check your connection.';
+    });
+}
+
+function populateReceiveView(d) {
+  document.getElementById('rv-origin-addr').textContent = d.originAddress || '-';
+  document.getElementById('rv-sender').textContent = d.sender || '-';
+  document.getElementById('rv-sender-phone').textContent = d.senderPhone || '-';
+  document.getElementById('rv-dest-addr').textContent = d.destAddress || '-';
+  document.getElementById('rv-receiver').textContent = d.receiver || '-';
+  document.getElementById('rv-receiver-phone').textContent = d.receiverPhone || '-';
+  document.getElementById('rv-eq-type').textContent = d.eqType || '-';
+  document.getElementById('rv-eq-brand').textContent = d.eqBrand || '-';
+  document.getElementById('rv-eq-serial').textContent = d.eqSerial || '-';
+  document.getElementById('rv-eq-accessories').textContent = d.eqAccessories || '-';
+
+  // Device status badge
+  var statusEl = document.getElementById('rv-eq-status');
+  if (d.deviceStatus && d.deviceStatus !== '-') {
+    var colors = { 'Good': '#22c55e', 'Has Details': '#f59e0b', 'Poor': '#e8533a' };
+    statusEl.innerHTML = '<span class="recv-status-badge" style="background:' +
+      (colors[d.deviceStatus] || '#888') + '">' + d.deviceStatus + '</span>';
+  } else {
+    statusEl.textContent = '-';
+  }
+
+  document.getElementById('rv-courier').textContent = d.courierCompany || '-';
+  document.getElementById('rv-carrier').textContent = d.carrierName || '-';
+  document.getElementById('rv-pickup-dt').textContent = d.pickupDatetime || '-';
+
+  // Carrier signature image
+  var sigImg = document.getElementById('rv-carrier-sig');
+  if (d.carrierSignature && d.carrierSignature.startsWith('data:')) {
+    sigImg.src = d.carrierSignature;
+  } else {
+    sigImg.style.display = 'none';
+  }
+
+  // Auto-fill delivery datetime
+  var now = new Date();
+  var mm = String(now.getMonth() + 1).padStart(2, '0');
+  var dd = String(now.getDate()).padStart(2, '0');
+  var yyyy = now.getFullYear();
+  var hh = now.getHours();
+  var min = String(now.getMinutes()).padStart(2, '0');
+  var ampm = hh >= 12 ? 'PM' : 'AM';
+  hh = hh % 12 || 12;
+  document.getElementById('rv-recv-datetime').value = mm + '/' + dd + '/' + yyyy + ', ' + String(hh).padStart(2,'0') + ':' + min + ' ' + ampm;
+
+  // Init signature canvas for receiver
+  initCanvas('sig-recv-confirm');
+
+  // If already confirmed, show banner and hide form
+  if (d.deliveryConfirmed) {
+    document.getElementById('recv-confirmed-banner').style.display = 'block';
+    document.getElementById('recv-form-section').style.display = 'none';
+  }
+}
+
+function confirmDelivery() {
+  var name = document.getElementById('rv-recv-name').value.trim();
+  if (!name) { toast('Please enter your full name', true); return; }
+  if (isCanvasEmpty('sig-recv-confirm')) { toast('Please sign to confirm delivery', true); return; }
+
+  var url = getAppsScriptUrl();
+  var sigData = document.getElementById('sig-recv-confirm').toDataURL('image/png');
+  var payload = {
+    action: 'confirm_delivery',
+    esn: receiveData.esn,
+    recvName: name,
+    recvDatetime: document.getElementById('rv-recv-datetime').value,
+    recvSignature: sigData
+  };
+
+  toast('Confirming delivery...');
+  fetch(url, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(payload)
+  }).then(function() {
+    document.getElementById('recv-confirmed-banner').style.display = 'block';
+    document.getElementById('recv-confirmed-banner').innerHTML = '&#10004; Delivery confirmed! Thank you.';
+    toast('Delivery confirmed!');
+  }).catch(function(err) {
+    toast('Error confirming: ' + err.message, true);
+  });
+}
+
+function buildReceivePDF() {
+  if (!receiveData) return null;
+  var d = receiveData;
+  var jsPDF = window.jspdf.jsPDF;
+  var doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  var W = 210, M = 18, y = M;
+  var contentW = W - M * 2;
+
+  function fld(lbl, val, x, yy) {
+    doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(120,120,130);
+    doc.text(lbl.toUpperCase(), x, yy);
+    doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(26,26,26);
+    doc.text(val || '-', x, yy + 5);
+  }
+  function sec(t, yy) {
+    if (yy > 240) { doc.addPage(); yy = M; }
+    doc.setFillColor(26,26,46); doc.rect(M, yy, contentW, 6, 'F');
+    doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
+    doc.text(t.toUpperCase(), M + 4, yy + 4);
+    return yy + 10;
+  }
+
+  // Header
+  doc.setFillColor(26,26,46); doc.rect(0,0,W,22,'F');
+  doc.setFontSize(14); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
+  doc.text('BINAGORA', M, 12);
+  doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(180,180,200);
+  doc.text('Equipment Shipping Note', M, 18);
+  doc.setFillColor(232,83,58); doc.roundedRect(W-62, 4, 44, 14, 2, 2, 'F');
+  doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
+  doc.text(d.esn, W-58, 10);
+  doc.setFontSize(8); doc.setFont('helvetica','normal');
+  doc.text(d.date, W-58, 15);
+  y = 30;
+
+  y = sec('Shipping Origin', y);
+  fld('Pickup Address', d.originAddress, M, y); y += 12;
+  fld('Sender', d.sender, M, y); fld('Phone', d.senderPhone, M+95, y); y += 14;
+
+  y = sec('Destination', y);
+  fld('Delivery Address', d.destAddress, M, y); y += 12;
+  fld('Receiver', d.receiver, M, y); fld('Phone', d.receiverPhone, M+95, y); y += 14;
+
+  y = sec('Equipment Details', y);
+  fld('Equipment Type', d.eqType, M, y); fld('Brand / Model', d.eqBrand, M+60, y); y += 12;
+  fld('Serial No.', d.eqSerial, M, y); fld('Accessories', d.eqAccessories, M+60, y); y += 12;
+  fld('Device Status', d.deviceStatus, M, y); y += 14;
+
+  y = sec('Courier Information', y);
+  fld('Courier Company', d.courierCompany, M, y); fld('Carrier Name', d.carrierName, M+90, y); y += 14;
+
+  if (y > 210) { doc.addPage(); y = M; }
+  y = sec('Pickup Confirmation', y);
+  fld('Carrier', d.carrierName, M, y); fld('Pickup', d.pickupDatetime, M+95, y); y += 12;
+  if (d.carrierSignature && d.carrierSignature.startsWith('data:')) {
+    try { doc.addImage(d.carrierSignature, 'PNG', M, y, 80, 25); } catch(e) {}
+  }
+  doc.setDrawColor(200,200,200); doc.rect(M, y, 80, 25);
+  doc.setFontSize(7.5); doc.setFont('helvetica','normal'); doc.setTextColor(150,150,150);
+  doc.text('Carrier Signature', M, y + 28); y += 34;
+
+  if (y + 50 > 275) { doc.addPage(); y = M; }
+  y = sec('Delivery Confirmation', y);
+  var rName = document.getElementById('rv-recv-name').value || d.recvName || '-';
+  var rDt = document.getElementById('rv-recv-datetime').value || d.recvDatetime || '-';
+  fld('Receiver Full Name', rName, M, y);
+  fld('Date & Time of Delivery', rDt, M+95, y); y += 12;
+
+  if (!isCanvasEmpty('sig-recv-confirm')) {
+    var rSig = document.getElementById('sig-recv-confirm').toDataURL('image/png');
+    doc.addImage(rSig, 'PNG', M, y, 80, 25);
+    doc.setDrawColor(200,200,200); doc.rect(M, y, 80, 25);
+    doc.setFontSize(7.5); doc.setFont('helvetica','normal'); doc.setTextColor(150,150,150);
+    doc.text('Receiver Signature', M, y + 28);
+  } else {
+    doc.setDrawColor(200,200,200); doc.rect(M, y, 80, 25);
+    doc.setFontSize(8); doc.setFont('helvetica','italic'); doc.setTextColor(180,180,180);
+    doc.text('Signature pending', M+4, y+13);
+  }
+
+  var footerY = Math.max(y + 20, 280);
+  if (footerY > 290) footerY = 290;
+  doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(180,180,180);
+  doc.text('Generated by Binagora | ' + new Date().toLocaleString('en-US'), M, footerY);
+  return doc;
 }
 
 // ── EVENT LISTENERS ─────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
+  // Load Apps Script URL from localStorage
+  APPS_SCRIPT_URL = safeGet('apps_script_url') || '';
+
+  // Check if we're in receive mode
+  if (checkReceiveMode()) {
+    // Receive mode: wire up confirm + PDF buttons
+    document.getElementById('btn-confirm-delivery').addEventListener('click', confirmDelivery);
+    document.getElementById('btn-recv-pdf').addEventListener('click', function() {
+      var pdf = buildReceivePDF();
+      if (pdf) pdf.save('ShippingNote-' + receiveData.esn + '.pdf');
+    });
+    document.getElementById('clear-recv-confirm').addEventListener('click', function() { clearCanvas('sig-recv-confirm'); });
+    // Config modal (receiver might need to set Apps Script URL)
+    document.getElementById('config-btn').addEventListener('click', openModal);
+    document.getElementById('btn-cancel-modal').addEventListener('click', closeModal);
+    document.getElementById('btn-save-config').addEventListener('click', saveConfig);
+    return; // Skip normal app init
+  }
+
   initApp();
 
   // Navigation buttons
