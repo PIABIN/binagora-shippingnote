@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Binagora — Equipment Shipping Note</title>
+<title>Binagora â Equipment Shipping Note</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <style>
@@ -101,22 +101,22 @@
 
 <div class="success-overlay" id="success-overlay">
   <div class="success-card">
-    <div class="success-icon">✅</div>
+    <div class="success-icon">â</div>
     <div class="success-title">Done!</div>
-    <div class="success-sub" id="success-msg">PDF downloaded and sent to <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="5c333a3a353f391c3e35323d3b332e3d723f3331">[email&#160;protected]</a></div>
+    <div class="success-sub" id="success-msg">PDF downloaded and sent to office@binagora.com</div>
     <button class="btn-new" id="btn-new">+ New Shipping Note</button>
   </div>
 </div>
 
 <div class="modal-overlay" id="config-modal">
   <div class="modal">
-    <h2>⚙️ Email Setup (EmailJS)</h2>
+    <h2>âï¸ Email Setup (EmailJS)</h2>
     <div class="instructions">
       <strong>How to set up (free, 5 min):</strong><br>
       1. Create a free account at <a href="https://www.emailjs.com" target="_blank">emailjs.com</a><br>
-      2. Add an <strong>Email Service</strong> (Gmail) → copy the <strong>Service ID</strong><br>
-      3. Create an <strong>Email Template</strong> → copy the <strong>Template ID</strong><br>
-      4. Go to <strong>Account → Public Key</strong> → copy it<br>
+      2. Add an <strong>Email Service</strong> (Gmail) â copy the <strong>Service ID</strong><br>
+      3. Create an <strong>Email Template</strong> â copy the <strong>Template ID</strong><br>
+      4. Go to <strong>Account â Public Key</strong> â copy it<br>
       5. Paste the three values below and save
     </div>
     <div class="field"><label>Public Key</label><input type="text" id="cfg-pubkey" placeholder="e.g. aBcDeFgHiJkLmNoP"></div>
@@ -131,7 +131,6 @@
 
 <div class="header">
   <div class="header-left">
-    
     <div class="doc-title">Equipment Shipping Note</div>
   </div>
   <div class="numero-remito" id="display-numero">No. ESN-0001</div>
@@ -147,11 +146,12 @@
 
 <div class="main">
 
+  <!-- PANEL 0: Origin -->
   <div class="panel active" id="panel-0">
     <div class="section-title">Shipping Origin</div>
     <div class="grid grid-2">
-      <div class="field"><label class="required">Shipping Note No.</label><input type="text" id="numero" placeholder="e.g. ESN-0001"></div>
-      <div class="field"><label>Date</label><input type="text" id="fecha" placeholder="MM/DD/YYYY"></div>
+      <div class="field"><label>Shipping Note No.</label><input type="text" id="numero" readonly></div>
+      <div class="field"><label>Date</label><input type="text" id="fecha" readonly></div>
     </div>
     <div class="grid">
       <div class="field"><label class="required">Pickup Address</label><input type="text" id="origen-dir" placeholder="Street, number, city"></div>
@@ -160,9 +160,10 @@
       <div class="field"><label class="required">Sender Name</label><input type="text" id="origen-empresa"></div>
       <div class="field"><label>Phone</label><input type="tel" id="origen-tel" placeholder="+1 ..."></div>
     </div>
-    <div class="nav"><span></span><button class="btn btn-primary" id="btn-next-0">Next →</button></div>
+    <div class="nav"><span></span><button class="btn btn-primary" id="btn-next-0">Next â</button></div>
   </div>
 
+  <!-- PANEL 1: Destination -->
   <div class="panel" id="panel-1">
     <div class="section-title">Destination</div>
     <div class="grid">
@@ -173,11 +174,12 @@
       <div class="field"><label>Phone</label><input type="tel" id="dest-tel" placeholder="+1 ..."></div>
     </div>
     <div class="nav">
-      <button class="btn btn-secondary" id="btn-prev-1">← Back</button>
-      <button class="btn btn-primary" id="btn-next-1">Next →</button>
+      <button class="btn btn-secondary" id="btn-prev-1">â Back</button>
+      <button class="btn btn-primary" id="btn-next-1">Next â</button>
     </div>
   </div>
 
+  <!-- PANEL 2: Equipment -->
   <div class="panel" id="panel-2">
     <div class="section-title">Equipment Details</div>
     <div class="grid grid-2">
@@ -199,20 +201,21 @@
     <div class="field" style="margin-bottom:16px;">
       <label>Device Status</label>
       <div class="estado-group">
-        <button class="estado-btn" onclick="setEstado('Good')" id="btn-good">✓ Good</button>
-        <button class="estado-btn" onclick="setEstado('Has Details')" id="btn-details">⚠ Has Details</button>
-        <button class="estado-btn" onclick="setEstado('Poor')" id="btn-poor">✗ Poor</button>
+        <button class="estado-btn" onclick="setEstado('Good')" id="btn-good">â Good</button>
+        <button class="estado-btn" onclick="setEstado('Has Details')" id="btn-details">â  Has Details</button>
+        <button class="estado-btn" onclick="setEstado('Poor')" id="btn-poor">â Poor</button>
       </div>
     </div>
     <div class="grid">
       <div class="field"><label>Condition Notes</label><textarea id="eq-obs" placeholder="Describe scratches, dents, missing parts..."></textarea></div>
     </div>
     <div class="nav">
-      <button class="btn btn-secondary" id="btn-prev-2">← Back</button>
-      <button class="btn btn-primary" id="btn-next-2">Next →</button>
+      <button class="btn btn-secondary" id="btn-prev-2">â Back</button>
+      <button class="btn btn-primary" id="btn-next-2">Next â</button>
     </div>
   </div>
 
+  <!-- PANEL 3: Courier -->
   <div class="panel" id="panel-3">
     <div class="section-title">Courier Information</div>
     <div class="grid grid-2">
@@ -225,26 +228,27 @@
       <div class="field"><label>Vehicle License Plate</label><input type="text" id="cour-patente"></div>
     </div>
     <div class="nav">
-      <button class="btn btn-secondary" id="btn-prev-3">← Back</button>
-      <button class="btn btn-primary" id="btn-next-3">Next →</button>
+      <button class="btn btn-secondary" id="btn-prev-3">â Back</button>
+      <button class="btn btn-primary" id="btn-next-3">Next â</button>
     </div>
   </div>
 
+  <!-- PANEL 4: Sign & Send -->
   <div class="panel" id="panel-4">
     <div class="section-title">Pickup Confirmation</div>
     <p style="font-size:13px;color:var(--muted);margin-bottom:20px;font-style:italic;">"I hereby confirm receipt of the equipment detailed in this document for transport."</p>
     <div class="grid grid-2" style="margin-bottom:20px;">
       <div class="field"><label class="required">Carrier Full Name</label><input type="text" id="firma-nombre"></div>
-      <div class="field"><label>Date & Time of Pickup</label><input type="text" id="firma-datetime" placeholder="MM/DD/YYYY, HH:MM AM/PM"></div>
+      <div class="field"><label>Date & Time of Pickup</label><input type="text" id="firma-datetime" readonly></div>
     </div>
     <div class="firma-wrapper">
-      <div class="firma-label">Carrier Signature — sign with finger or mouse</div>
+      <div class="firma-label">Carrier Signature â sign with finger or mouse</div>
       <canvas id="sig-carrier" width="700" height="160"></canvas>
-      <div class="firma-actions"><button class="btn-clear" id="clear-carrier">🗑 Clear</button></div>
+      <div class="firma-actions"><button class="btn-clear" id="clear-carrier">ð Clear</button></div>
     </div>
 
-    <div class="optional-toggle" id="delivery-toggle" id="delivery-toggle">
-      <span class="toggle-icon">▶</span>
+    <div class="optional-toggle" id="delivery-toggle">
+      <span class="toggle-icon">â¶</span>
       <span>+ Add Delivery Confirmation <span style="font-size:11px;font-weight:400;">(optional)</span></span>
     </div>
     <div class="optional-section" id="delivery-section">
@@ -256,48 +260,55 @@
       <div class="firma-wrapper">
         <div class="firma-label">Receiver Signature (at destination)</div>
         <canvas id="sig-receiver" width="700" height="160"></canvas>
-        <div class="firma-actions"><button class="btn-clear" id="clear-receiver">🗑 Clear</button></div>
+        <div class="firma-actions"><button class="btn-clear" id="clear-receiver">ð Clear</button></div>
       </div>
     </div>
 
-    <div class="email-status nok" id="email-status-msg">⚠ Email not configured — click ⚙️ to set up (free, 5 min)</div>
+    <div class="email-status ok" id="email-status-msg">â Email ready â will send to office@binagora.com</div>
     <div class="nav">
-      <button class="btn btn-secondary" id="btn-prev-4">← Back</button>
+      <button class="btn btn-secondary" id="btn-prev-4">â Back</button>
       <div class="btn-row">
-        <button class="btn btn-pdf" id="btn-download">⬇ Download PDF</button>
-        <button class="btn btn-email" id="btn-send">📧 Send to office</button>
+        <button class="btn btn-pdf" id="btn-download">â¬ Download PDF</button>
+        <button class="btn btn-email" id="btn-send">ð§ Send to office</button>
       </div>
     </div>
   </div>
 
 </div>
 
-<button class="config-btn" id="config-btn" title="Email Settings">⚙️</button>
+<button class="config-btn" id="config-btn" title="Email Settings">âï¸</button>
 <div class="toast" id="toast"></div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
-// ── CONFIG ──────────────────────────────────────────────────────
-const RECIPIENT = 'office' + '@' + 'binagora.com';
-let estadoDispositivo = '';
-let ejsPK  = 'zDtBJfKHwNm7YKZEb';
-let ejsSVC = 'service_radv8d8';
-let ejsTPL = 'template_oe4252l';
+<script>
+// ââ CONFIG ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+var RECIPIENT = 'office@binagora.com';
+var estadoDispositivo = '';
+
+// Default EmailJS keys (hardcoded for Binagora)
+var DEFAULT_EJS_PK  = 'zDtBJfKHwNm7YKZEb';
+var DEFAULT_EJS_SVC = 'service_radv8d8';
+var DEFAULT_EJS_TPL = 'template_oe4252l';
+
+var ejsPK  = DEFAULT_EJS_PK;
+var ejsSVC = DEFAULT_EJS_SVC;
+var ejsTPL = DEFAULT_EJS_TPL;
 
 function safeGet(k) { try { return localStorage.getItem(k) || ''; } catch(e) { return ''; } }
 function safeSet(k, v) { try { localStorage.setItem(k, v); } catch(e) {} }
 
-// ── INIT ────────────────────────────────────────────────────────
+// ââ INIT ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function initApp() {
-  // Number
+  // Auto-increment shipping note number
   var n = 1;
-  try { n = parseInt(localStorage.getItem('bin_esn') || '0') + 1; localStorage.setItem('bin_esn', n); } catch(e) {}
+  try {
+    n = parseInt(localStorage.getItem('bin_esn') || '0') + 1;
+    localStorage.setItem('bin_esn', n);
+  } catch(e) {}
   var num = 'ESN-' + String(n).padStart(4, '0');
-  var elNum = document.getElementById('numero');
-  var elDisp = document.getElementById('display-numero');
-  if (elNum) elNum.value = num;
-  if (elDisp) elDisp.textContent = 'No. ' + num;
+  document.getElementById('numero').value = num;
+  document.getElementById('display-numero').textContent = 'No. ' + num;
 
-  // Date - use fixed format without toLocaleDateString
+  // Auto-fill date and pickup time
   var now = new Date();
   var mm = String(now.getMonth() + 1).padStart(2, '0');
   var dd = String(now.getDate()).padStart(2, '0');
@@ -306,44 +317,41 @@ function initApp() {
   var min = String(now.getMinutes()).padStart(2, '0');
   var ampm = hh >= 12 ? 'PM' : 'AM';
   hh = hh % 12 || 12;
-  var dateStr = mm + '/' + dd + '/' + yyyy;
-  var timeStr = mm + '/' + dd + '/' + yyyy + ', ' + String(hh).padStart(2,'0') + ':' + min + ' ' + ampm;
-  var elFecha = document.getElementById('fecha');
-  var elTime = document.getElementById('firma-datetime');
-  if (elFecha) elFecha.value = dateStr;
-  if (elTime) elTime.value = timeStr;
+  document.getElementById('fecha').value = mm + '/' + dd + '/' + yyyy;
+  document.getElementById('firma-datetime').value = mm + '/' + dd + '/' + yyyy + ', ' + String(hh).padStart(2,'0') + ':' + min + ' ' + ampm;
 
-  // EmailJS keys
-  ejsPK  = safeGet('ejs_pk');
-  ejsSVC = safeGet('ejs_svc');
-  ejsTPL = safeGet('ejs_tpl');
+  // Load EmailJS keys: use localStorage override if present, otherwise keep defaults
+  var storedPK  = safeGet('ejs_pk');
+  var storedSVC = safeGet('ejs_svc');
+  var storedTPL = safeGet('ejs_tpl');
+  if (storedPK && storedSVC && storedTPL) {
+    ejsPK  = storedPK;
+    ejsSVC = storedSVC;
+    ejsTPL = storedTPL;
+  }
   document.getElementById('cfg-pubkey').value  = ejsPK;
   document.getElementById('cfg-service').value = ejsSVC;
   document.getElementById('cfg-template').value = ejsTPL;
   updateEmailStatus();
 
-  // Canvas
+  // Init signature canvases
   initCanvas('sig-carrier');
   initCanvas('sig-receiver');
 }
 
-// Run on load
-window.onload = initApp;
-if(document.readyState !== "loading") { initApp(); }
-
-// ── EMAIL STATUS ────────────────────────────────────────────────
+// ââ EMAIL STATUS ââââââââââââââââââââââââââââââââââââââââââââââââ
 function updateEmailStatus() {
   var el = document.getElementById('email-status-msg');
   if (ejsPK && ejsSVC && ejsTPL) {
     el.className = 'email-status ok';
-    el.textContent = '✓ Email ready — will send to ' + RECIPIENT;
+    el.textContent = 'â Email ready â will send to ' + RECIPIENT;
   } else {
     el.className = 'email-status nok';
-    el.textContent = '⚠ Email not configured — click ⚙️ to set up (free, 5 min)';
+    el.textContent = 'â  Email not configured â click âï¸ to set up (free, 5 min)';
   }
 }
 
-// ── NAVIGATION ──────────────────────────────────────────────────
+// ââ NAVIGATION ââââââââââââââââââââââââââââââââââââââââââââââââââ
 function goTo(n) {
   var panels = document.querySelectorAll('.panel');
   var steps  = document.querySelectorAll('.step');
@@ -353,10 +361,14 @@ function goTo(n) {
   steps[n].classList.add('active');
   window.scrollTo(0, 0);
 }
-function next(n) { if (!validatePanel(n)) return; goTo(n + 1); document.querySelectorAll('.step')[n].classList.add('done'); }
+function next(n) {
+  if (!validatePanel(n)) return;
+  goTo(n + 1);
+  document.querySelectorAll('.step')[n].classList.add('done');
+}
 function prev(n) { goTo(n - 1); }
 
-// ── VALIDATION ──────────────────────────────────────────────────
+// ââ VALIDATION ââââââââââââââââââââââââââââââââââââââââââââââââââ
 function validatePanel(n) {
   var req = {
     0: ['origen-dir','origen-empresa'],
@@ -375,11 +387,11 @@ function validatePanel(n) {
       (function(e){ setTimeout(function(){ e.style.borderColor = ''; }, 2000); })(el);
     }
   }
-  if (!ok) toast('Please fill in all required fields (*)');
+  if (!ok) toast('Please fill in all required fields (*)', true);
   return ok;
 }
 
-// ── DEVICE STATUS ───────────────────────────────────────────────
+// ââ DEVICE STATUS âââââââââââââââââââââââââââââââââââââââââââââââ
 function setEstado(val) {
   estadoDispositivo = val;
   document.getElementById('btn-good').className    = 'estado-btn';
@@ -390,15 +402,16 @@ function setEstado(val) {
   if (val === 'Poor')        document.getElementById('btn-poor').className    = 'estado-btn sel-poor';
 }
 
-// ── OPTIONAL DELIVERY ───────────────────────────────────────────
+// ââ OPTIONAL DELIVERY âââââââââââââââââââââââââââââââââââââââââââ
 function toggleDelivery() {
   document.getElementById('delivery-toggle').classList.toggle('open');
   document.getElementById('delivery-section').classList.toggle('open');
 }
 
-// ── CANVAS ──────────────────────────────────────────────────────
+// ââ CANVAS (Signature) ââââââââââââââââââââââââââââââââââââââââââ
 function initCanvas(id) {
   var c = document.getElementById(id);
+  if (!c) return;
   var ctx = c.getContext('2d');
   ctx.strokeStyle = '#1a1a2e';
   ctx.lineWidth   = 2.5;
@@ -426,16 +439,19 @@ function initCanvas(id) {
 
 function clearCanvas(id) {
   var c = document.getElementById(id);
-  c.getContext('2d').clearRect(0, 0, c.width, c.height);
+  if (!c) return;
+  var ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, c.width, c.height);
 }
 function isCanvasEmpty(id) {
   var c = document.getElementById(id);
+  if (!c) return true;
   var data = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
   for (var i = 0; i < data.length; i++) { if (data[i] !== 0) return false; }
   return true;
 }
 
-// ── TOAST ───────────────────────────────────────────────────────
+// ââ TOAST âââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function toast(msg, err) {
   var t = document.getElementById('toast');
   t.textContent = msg;
@@ -443,157 +459,197 @@ function toast(msg, err) {
   setTimeout(function() { t.className = 'toast'; }, 3200);
 }
 
-// ── BUILD PDF ───────────────────────────────────────────────────
+// ââ BUILD PDF âââââââââââââââââââââââââââââââââââââââââââââââââââ
 function buildPDF() {
   var jsPDF = window.jspdf.jsPDF;
   var doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   var W = 210, M = 18, y = M;
+  var contentW = W - M * 2;
 
   function fld(lbl, val, x, yy) {
     doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(120,120,130);
     doc.text(lbl.toUpperCase(), x, yy);
     doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(26,26,26);
-    doc.text(val || '—', x, yy + 5);
+    doc.text(val || 'â', x, yy + 5);
   }
   function sec(t, yy) {
-    doc.setFillColor(26,26,46); doc.rect(M, yy, W - M*2, 6, 'F');
+    if (yy > 260) { doc.addPage(); yy = M; }
+    doc.setFillColor(26,26,46); doc.rect(M, yy, contentW, 6, 'F');
     doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
     doc.text(t.toUpperCase(), M + 4, yy + 4);
     return yy + 10;
   }
 
-  // Header
+  // Header bar
   doc.setFillColor(26,26,46); doc.rect(0,0,W,22,'F');
   doc.setFontSize(14); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
-  
+  doc.text('BINAGORA', M, 12);
   doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(180,180,200);
   doc.text('Equipment Shipping Note', M, 18);
-  doc.setFillColor(232,83,58); doc.rect(W-62,4,44,14,'F');
+
+  doc.setFillColor(232,83,58);
+  doc.roundedRect(W - 62, 4, 44, 14, 2, 2, 'F');
   doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
-  doc.text(document.getElementById('numero').value, W-61, 10);
+  doc.text(document.getElementById('numero').value, W - 58, 10);
   doc.setFontSize(8); doc.setFont('helvetica','normal');
-  doc.text(document.getElementById('fecha').value, W-61, 15);
+  doc.text(document.getElementById('fecha').value, W - 58, 15);
   y = 30;
 
+  // ORIGIN
   y = sec('Shipping Origin', y);
   fld('Pickup Address', document.getElementById('origen-dir').value, M, y);
-  y += 10;
+  y += 12;
   fld('Sender', document.getElementById('origen-empresa').value, M, y);
-  fld('Phone',  document.getElementById('origen-tel').value, M + 100, y);
+  fld('Phone',  document.getElementById('origen-tel').value, M + 95, y);
   y += 14;
 
+  // DESTINATION
   y = sec('Destination', y);
   fld('Delivery Address', document.getElementById('dest-dir').value, M, y);
-  y += 10;
+  y += 12;
   fld('Receiver', document.getElementById('dest-empresa').value, M, y);
-  fld('Phone',    document.getElementById('dest-tel').value, M + 100, y);
+  fld('Phone',    document.getElementById('dest-tel').value, M + 95, y);
   y += 14;
 
+  // EQUIPMENT
   y = sec('Equipment Details', y);
-  fld('Equipment Type', document.getElementById('eq-tipo').value,  M,      y);
+  fld('Equipment Type', document.getElementById('eq-tipo').value,  M, y);
   fld('Brand / Model',  document.getElementById('eq-marca').value, M + 50, y);
-  fld('Serial No.',     document.getElementById('eq-serie').value, M + 120,y);
+  fld('Serial No.',     document.getElementById('eq-serie').value, M + 115, y);
   y += 12;
   fld('Included Accessories', document.getElementById('eq-accesorios').value, M, y);
   y += 10;
 
   doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(120,120,130);
   doc.text('DEVICE STATUS', M, y);
+  var statusText = estadoDispositivo || 'â';
   var sc = estadoDispositivo === 'Good' ? [34,197,94] : estadoDispositivo === 'Has Details' ? [245,158,11] : [232,83,58];
-  doc.setFillColor(sc[0],sc[1],sc[2]); doc.roundedRect(M, y+2, 50, 7, 1.5, 1.5, 'F');
-  doc.setFontSize(8.5); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
-  doc.text(estadoDispositivo || '—', M+3, y+7);
+  if (estadoDispositivo) {
+    doc.setFillColor(sc[0],sc[1],sc[2]);
+    doc.roundedRect(M, y+2, 50, 7, 1.5, 1.5, 'F');
+    doc.setFontSize(8.5); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
+    doc.text(statusText, M+3, y+7);
+  } else {
+    doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(26,26,26);
+    doc.text('â', M, y+7);
+  }
   y += 14;
 
   var obs = document.getElementById('eq-obs').value;
-  if (obs) { fld('Condition Notes', obs, M, y); y += 12; }
+  if (obs) {
+    fld('Condition Notes', '', M, y);
+    doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(26,26,26);
+    var splitObs = doc.splitTextToSize(obs, contentW - 5);
+    doc.text(splitObs, M, y + 5);
+    y += 5 + (splitObs.length * 4.5);
+    y += 4;
+  }
 
+  // COURIER
   y = sec('Courier Information', y);
-  fld('Courier Company', document.getElementById('cour-empresa').value, M,      y);
+  fld('Courier Company', document.getElementById('cour-empresa').value, M, y);
   fld('Carrier Name',    document.getElementById('cour-nombre').value,  M + 60, y);
   y += 12;
-  fld('ID / Document',  document.getElementById('cour-dni').value,     M,       y);
-  fld('Phone',          document.getElementById('cour-tel').value,     M + 65,  y);
-  fld('License Plate',  document.getElementById('cour-patente').value, M + 125, y);
+  fld('ID / Document',  document.getElementById('cour-dni').value,     M, y);
+  fld('Phone',          document.getElementById('cour-tel').value,     M + 55, y);
+  fld('License Plate',  document.getElementById('cour-patente').value, M + 110, y);
   y += 14;
 
+  // PICKUP CONFIRMATION
   y = sec('Pickup Confirmation', y);
   doc.setFontSize(8); doc.setFont('helvetica','italic'); doc.setTextColor(100,100,110);
   doc.text('I hereby confirm receipt of the equipment detailed in this document for transport.', M, y);
   y += 8;
-  fld('Full Name',           document.getElementById('firma-nombre').value,   M,       y);
-  fld('Date & Time of Pickup', document.getElementById('firma-datetime').value, M + 100, y);
+  fld('Full Name',             document.getElementById('firma-nombre').value,    M, y);
+  fld('Date & Time of Pickup', document.getElementById('firma-datetime').value, M + 95, y);
   y += 12;
-  var cSig = document.getElementById('sig-carrier').toDataURL('image/png');
-  doc.addImage(cSig, 'PNG', M, y, 80, 25);
+
+  if (!isCanvasEmpty('sig-carrier')) {
+    var cSig = document.getElementById('sig-carrier').toDataURL('image/png');
+    doc.addImage(cSig, 'PNG', M, y, 80, 25);
+  }
   doc.setDrawColor(200,200,200); doc.rect(M, y, 80, 25);
-  doc.setFontSize(7.5); doc.setFont('helvetica','normal'); doc.setTextColor(150);
-  doc.text('Carrier Signature', M, y+28);
+  doc.setFontSize(7.5); doc.setFont('helvetica','normal'); doc.setTextColor(150,150,150);
+  doc.text('Carrier Signature', M, y + 28);
   y += 34;
 
+  // DELIVERY CONFIRMATION
+  if (y > 250) { doc.addPage(); y = M; }
   y = sec('Delivery Confirmation', y);
-  fld('Receiver Full Name',       document.getElementById('recv-nombre').value    || '—', M,       y);
-  fld('Date & Time of Delivery',  document.getElementById('recv-datetime').value  || '—', M + 100, y);
+  var recvName = document.getElementById('recv-nombre').value;
+  var recvDate = document.getElementById('recv-datetime').value;
+  fld('Receiver Full Name',      recvName || 'â', M, y);
+  fld('Date & Time of Delivery', recvDate || 'â', M + 95, y);
   y += 12;
+
   if (!isCanvasEmpty('sig-receiver')) {
     var rSig = document.getElementById('sig-receiver').toDataURL('image/png');
     doc.addImage(rSig, 'PNG', M, y, 80, 25);
     doc.setDrawColor(200,200,200); doc.rect(M, y, 80, 25);
-    doc.setFontSize(7.5); doc.setFont('helvetica','normal'); doc.setTextColor(150);
-    doc.text('Receiver Signature', M, y+28);
+    doc.setFontSize(7.5); doc.setFont('helvetica','normal'); doc.setTextColor(150,150,150);
+    doc.text('Receiver Signature', M, y + 28);
   } else {
     doc.setDrawColor(200,200,200); doc.rect(M, y, 80, 25);
-    doc.setFontSize(8); doc.setFont('helvetica','italic'); doc.setTextColor(180);
-    doc.text('Signature pending', M+4, y+13);
+    doc.setFontSize(8); doc.setFont('helvetica','italic'); doc.setTextColor(180,180,180);
+    doc.text('Signature pending', M + 4, y + 13);
   }
 
-  doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(180);
-  doc.text('Generated by Binagora · ' + new Date().toLocaleString('en-US'), M, 287);
+  // Footer
+  doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(180,180,180);
+  doc.text('Generated by Binagora Â· ' + new Date().toLocaleString('en-US'), M, 287);
   return doc;
 }
 
-// ── DOWNLOAD ────────────────────────────────────────────────────
+// ââ DOWNLOAD ââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function downloadPDF() {
+  if (!validatePanel(4)) return;
   if (isCanvasEmpty('sig-carrier')) { toast('The carrier must sign first', true); return; }
-  buildPDF().save('ShippingNote-' + document.getElementById('numero').value + '.pdf');
-  toast('PDF downloaded ✓');
+  var filename = 'ShippingNote-' + document.getElementById('numero').value + '.pdf';
+  buildPDF().save(filename);
+  toast('PDF downloaded â');
 }
 
-// ── SEND EMAIL ──────────────────────────────────────────────────
+// ââ SEND EMAIL ââââââââââââââââââââââââââââââââââââââââââââââââââ
 function downloadAndSend() {
+  if (!validatePanel(4)) return;
   if (isCanvasEmpty('sig-carrier')) { toast('The carrier must sign first', true); return; }
-  if (!ejsPK || !ejsSVC || !ejsTPL) { toast('Configure EmailJS first — click ⚙️', true); return; }
+  if (!ejsPK || !ejsSVC || !ejsTPL) { toast('Configure EmailJS first â click âï¸', true); return; }
+
+  var filename = 'ShippingNote-' + document.getElementById('numero').value + '.pdf';
   var doc = buildPDF();
-  doc.save('ShippingNote-' + document.getElementById('numero').value + '.pdf');
-  toast('Sending...');
+  doc.save(filename);
+  toast('Sending email...');
+
   emailjs.init(ejsPK);
   emailjs.send(ejsSVC, ejsTPL, {
-    to_email:       RECIPIENT,
-    esn_number:     document.getElementById('numero').value,
-    esn_date:       document.getElementById('fecha').value,
-    origin:         document.getElementById('origen-empresa').value,
-    destination:    document.getElementById('dest-empresa').value,
-    equipment:      document.getElementById('eq-tipo').value + ' ' + document.getElementById('eq-marca').value,
-    serial:         document.getElementById('eq-serie').value,
-    carrier_name:   document.getElementById('cour-nombre').value,
-    courier_company:document.getElementById('cour-empresa').value,
-    device_status:  estadoDispositivo || '—'
+    to_email:        RECIPIENT,
+    esn_number:      document.getElementById('numero').value,
+    esn_date:        document.getElementById('fecha').value,
+    origin:          document.getElementById('origen-empresa').value,
+    destination:     document.getElementById('dest-empresa').value,
+    equipment:       document.getElementById('eq-tipo').value + ' â ' + document.getElementById('eq-marca').value,
+    serial:          document.getElementById('eq-serie').value,
+    carrier_name:    document.getElementById('cour-nombre').value,
+    courier_company: document.getElementById('cour-empresa').value,
+    device_status:   estadoDispositivo || 'â'
   }).then(function() {
     document.getElementById('success-msg').textContent = 'PDF downloaded and notification sent to ' + RECIPIENT;
     document.getElementById('success-overlay').classList.add('show');
   }).catch(function(err) {
+    console.error('EmailJS error:', err);
     toast('Email error: ' + (err.text || err.message || 'check your EmailJS config'), true);
   });
 }
 
-// ── RESET ───────────────────────────────────────────────────────
+// ââ RESET âââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function resetForm() {
   document.getElementById('success-overlay').classList.remove('show');
   var inputs = document.querySelectorAll('input:not([readonly]),textarea');
   for (var i = 0; i < inputs.length; i++) inputs[i].value = '';
   var selects = document.querySelectorAll('select');
   for (var i = 0; i < selects.length; i++) selects[i].selectedIndex = 0;
-  clearCanvas('sig-carrier'); clearCanvas('sig-receiver');
+  clearCanvas('sig-carrier');
+  clearCanvas('sig-receiver');
   estadoDispositivo = '';
   document.getElementById('btn-good').className    = 'estado-btn';
   document.getElementById('btn-details').className = 'estado-btn';
@@ -604,10 +660,52 @@ function resetForm() {
   goTo(0);
 }
 
-// ── CONFIG MODAL ────────────────────────────────────────────────
+// ââ CONFIG MODAL ââââââââââââââââââââââââââââââââââââââââââââââââ
 function openModal()  { document.getElementById('config-modal').classList.add('show'); }
 function closeModal() { document.getElementById('config-modal').classList.remove('show'); }
 function saveConfig() {
   ejsPK  = document.getElementById('cfg-pubkey').value.trim();
   ejsSVC = document.getElementById('cfg-service').value.trim();
-  ejsTPL = document.getElementByI
+  ejsTPL = document.getElementById('cfg-template').value.trim();
+  safeSet('ejs_pk',  ejsPK);
+  safeSet('ejs_svc', ejsSVC);
+  safeSet('ejs_tpl', ejsTPL);
+  updateEmailStatus();
+  closeModal();
+  toast('Email settings saved â');
+}
+
+// ââ EVENT LISTENERS âââââââââââââââââââââââââââââââââââââââââââââ
+document.addEventListener('DOMContentLoaded', function() {
+  initApp();
+
+  // Navigation buttons
+  document.getElementById('btn-next-0').addEventListener('click', function() { next(0); });
+  document.getElementById('btn-next-1').addEventListener('click', function() { next(1); });
+  document.getElementById('btn-next-2').addEventListener('click', function() { next(2); });
+  document.getElementById('btn-next-3').addEventListener('click', function() { next(3); });
+  document.getElementById('btn-prev-1').addEventListener('click', function() { prev(1); });
+  document.getElementById('btn-prev-2').addEventListener('click', function() { prev(2); });
+  document.getElementById('btn-prev-3').addEventListener('click', function() { prev(3); });
+  document.getElementById('btn-prev-4').addEventListener('click', function() { prev(4); });
+
+  // Action buttons
+  document.getElementById('btn-download').addEventListener('click', downloadPDF);
+  document.getElementById('btn-send').addEventListener('click', downloadAndSend);
+  document.getElementById('btn-new').addEventListener('click', resetForm);
+
+  // Signature clear buttons
+  document.getElementById('clear-carrier').addEventListener('click', function() { clearCanvas('sig-carrier'); });
+  document.getElementById('clear-receiver').addEventListener('click', function() { clearCanvas('sig-receiver'); });
+
+  // Delivery toggle
+  document.getElementById('delivery-toggle').addEventListener('click', toggleDelivery);
+
+  // Config modal
+  document.getElementById('config-btn').addEventListener('click', openModal);
+  document.getElementById('btn-cancel-modal').addEventListener('click', closeModal);
+  document.getElementById('btn-save-config').addEventListener('click', saveConfig);
+});
+</script>
+</body>
+</html>
