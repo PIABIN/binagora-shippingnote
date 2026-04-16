@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Binagora - Equipment Shipping Note</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<!-- Email sent via Google Apps Script backend -->
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
   :root {
@@ -130,23 +130,19 @@
 
 <div class="modal-overlay" id="config-modal">
   <div class="modal">
-    <h2>&#9881;&#65039; Email Setup (EmailJS)</h2>
+    <h2>&#9881;&#65039; Settings</h2>
     <div class="instructions">
-      <strong>How to set up (free, 5 min):</strong><br>
-      1. Create a free account at <a href="https://www.emailjs.com" target="_blank">emailjs.com</a><br>
-      2. Add an <strong>Email Service</strong> (Gmail) &rarr; copy the <strong>Service ID</strong><br>
-      3. Create an <strong>Email Template</strong> &rarr; copy the <strong>Template ID</strong><br>
-      4. Go to <strong>Account &rarr; Public Key</strong> &rarr; copy it<br>
-      5. Paste the three values below and save
+      <strong>Google Apps Script Setup:</strong><br>
+      1. Go to <a href="https://script.google.com" target="_blank">script.google.com</a> &rarr; New project<br>
+      2. Paste the backend code (see guide)<br>
+      3. Click <strong>Deploy &rarr; New deployment &rarr; Web app</strong><br>
+      4. Set "Who has access" to <strong>Anyone</strong> &rarr; Deploy<br>
+      5. Copy the URL and paste it below
     </div>
-    <div class="field"><label>Public Key</label><input type="text" id="cfg-pubkey" placeholder="e.g. aBcDeFgHiJkLmNoP"></div>
-    <div class="field"><label>Service ID</label><input type="text" id="cfg-service" placeholder="e.g. service_xxxxxxx"></div>
-    <div class="field"><label>Template ID</label><input type="text" id="cfg-template" placeholder="e.g. template_xxxxxxx"></div>
-    <div style="border-top:1px solid var(--border);margin:16px 0 12px;padding-top:14px;">
-      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin-bottom:8px;">Receiver Link (optional)</div>
-      <div class="field"><label>Google Apps Script URL</label><input type="text" id="cfg-apps-script" placeholder="https://script.google.com/macros/s/.../exec"></div>
-      <div style="font-size:11px;color:var(--muted);margin-top:4px;">Enables sharing a link so the receiver can sign delivery confirmation.</div>
-    </div>
+    <div class="field"><label>Google Apps Script URL</label><input type="text" id="cfg-apps-script" placeholder="https://script.google.com/macros/s/.../exec"></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px;margin-bottom:14px;">Required for email sending, data storage, and receiver link feature.</div>
+    <div class="field"><label>Recipient Email</label><input type="text" id="cfg-recipient" placeholder="e.g. office@binagora.com"></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px;">Email address where shipping notes will be sent.</div>
     <div class="modal-actions">
       <button class="btn-cancel" id="btn-cancel-modal">Cancel</button>
       <button class="btn-save" id="btn-save-config">Save</button>
@@ -396,14 +392,7 @@ var APPS_SCRIPT_URL = ''; // Set via config modal or localStorage
 var receiveMode = false;
 var receiveData = null;
 
-// Default EmailJS keys (hardcoded for Binagora)
-var DEFAULT_EJS_PK  = 'zDtBJfKHwNm7YKZEb';
-var DEFAULT_EJS_SVC = 'service_radv8d8';
-var DEFAULT_EJS_TPL = 'template_oe4252l';
-
-var ejsPK  = DEFAULT_EJS_PK;
-var ejsSVC = DEFAULT_EJS_SVC;
-var ejsTPL = DEFAULT_EJS_TPL;
+// Email is now sent via Google Apps Script (no EmailJS needed)
 
 function safeGet(k) { try { return localStorage.getItem(k) || ''; } catch(e) { return ''; } }
 function safeSet(k, v) { try { localStorage.setItem(k, v); } catch(e) {} }
@@ -432,19 +421,11 @@ function initApp() {
   document.getElementById('fecha').value = mm + '/' + dd + '/' + yyyy;
   document.getElementById('firma-datetime').value = mm + '/' + dd + '/' + yyyy + ', ' + String(hh).padStart(2,'0') + ':' + min + ' ' + ampm;
 
-  // Load EmailJS keys: use localStorage override if present, otherwise keep defaults
-  var storedPK  = safeGet('ejs_pk');
-  var storedSVC = safeGet('ejs_svc');
-  var storedTPL = safeGet('ejs_tpl');
-  if (storedPK && storedSVC && storedTPL) {
-    ejsPK  = storedPK;
-    ejsSVC = storedSVC;
-    ejsTPL = storedTPL;
-  }
-  document.getElementById('cfg-pubkey').value  = ejsPK;
-  document.getElementById('cfg-service').value = ejsSVC;
-  document.getElementById('cfg-template').value = ejsTPL;
-  document.getElementById('cfg-apps-script').value = getAppsScriptUrl();
+  // Load recipient email
+  var storedRecip = safeGet('esn_recipient');
+  if (storedRecip) RECIPIENT = storedRecip;
+  document.getElentmentById('cfg-apps-script').value = getAppsScriptUrl();
+  document.getElementById('cfg-recipient').value = RECIPIENT;
   updateEmailStatus();
 
   // Init signature canvases
@@ -455,710 +436,785 @@ function initApp() {
 // ── EMAIL STATUS ────────────────────────────────────────────────
 function updateEmailStatus() {
   var el = document.getElementById('email-status-msg');
-  if (ejsPK && ejsSVC && ejsTPL) {
+  if (getAppsScriptUrl()) {
     el.className = 'email-status ok';
     el.innerHTML = '&#10003; Email ready - will send to ' + RECIPIENT;
   } else {
     el.className = 'email-status nok';
-    el.innerHTML = '&#9888; Email not configured - click &#9881;&#65039; to set up (free, 5 min)';
+    el.innerHTML = '&#9888; Email not configured - click &#9881;&#65039; to set up Google Apps Script';
   }
 }
 
 // ── NAVIGATION ──────────────────────────────────────────────────
-function goTo(n) {
-  var panels = document.querySelectorAll('.panel');
-  var steps  = document.querySelectorAll('.step');
-  for (var i = 0; i < panels.length; i++) panels[i].classList.remove('active');
-  for (var i = 0; i < steps.length; i++)  steps[i].classList.remove('active');
-  document.getElementById('panel-' + n).classList.add('active');
-  steps[n].classList.add('active');
-  window.scrollTo(0, 0);
-}
-function next(n) {
-  if (!validatePanel(n)) return;
-  goTo(n + 1);
-  document.querySelectorAll('.step')[n].classList.add('done');
-}
-function prev(n) { goTo(n - 1); }
-
-// ── VALIDATION ──────────────────────────────────────────────────
-function validatePanel(n) {
-  var req = {
-    0: ['origen-dir','origen-empresa'],
-    1: ['dest-dir','dest-empresa'],
-    2: ['eq-tipo','eq-marca','eq-serie'],
-    3: ['cour-empresa','cour-nombre','cour-dni'],
-    4: ['firma-nombre']
-  };
-  var fields = req[n] || [];
-  var ok = true;
-  for (var i = 0; i < fields.length; i++) {
-    var el = document.getElementById(fields[i]);
-    if (!el.value.trim()) {
-      el.style.borderColor = '#e8533a';
-      ok = false;
-      (function(e){ setTimeout(function(){ e.style.borderColor = ''; }, 2000); })(el);
-    }
-  }
-  if (!ok) toast('Please fill in all required fields (*)', true);
-  return ok;
-}
-
-// ── DEVICE STATUS ───────────────────────────────────────────────
-function setEstado(val) {
-  estadoDispositivo = val;
-  document.getElementById('btn-good').className    = 'estado-btn';
-  document.getElementById('btn-details').className = 'estado-btn';
-  document.getElementById('btn-poor').className    = 'estado-btn';
-  if (val === 'Good')        document.getElementById('btn-good').className    = 'estado-btn sel-good';
-  if (val === 'Has Details') document.getElementById('btn-details').className = 'estado-btn sel-details';
-  if (val === 'Poor')        document.getElementById('btn-poor').className    = 'estado-btn sel-poor';
-}
-
-// ── OPTIONAL DELIVERY ───────────────────────────────────────────
-function toggleDelivery() {
-  document.getElementById('delivery-toggle').classList.toggle('open');
-  document.getElementById('delivery-section').classList.toggle('open');
-}
-
-// ── CANVAS (Signature) ──────────────────────────────────────────
-function initCanvas(id) {
-  var c = document.getElementById(id);
-  if (!c) return;
-  var ctx = c.getContext('2d');
-  ctx.strokeStyle = '#1a1a2e';
-  ctx.lineWidth   = 2.5;
-  ctx.lineCap     = 'round';
-  ctx.lineJoin    = 'round';
-  var drawing = false, lx = 0, ly = 0;
-
-  function getPos(e) {
-    var r  = c.getBoundingClientRect();
-    var sx = c.width  / r.width;
-    var sy = c.height / r.height;
-    if (e.touches) return [(e.touches[0].clientX - r.left) * sx, (e.touches[0].clientY - r.top) * sy];
-    return [(e.clientX - r.left) * sx, (e.clientY - r.top) * sy];
-  }
-  function draw(x, y) { ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(x, y); ctx.stroke(); lx = x; ly = y; }
-
-  c.addEventListener('mousedown',  function(e) { drawing = true;  var p = getPos(e); lx = p[0]; ly = p[1]; });
-  c.addEventListener('mousemove',  function(e) { if (!drawing) return; var p = getPos(e); draw(p[0], p[1]); });
-  c.addEventListener('mouseup',    function()  { drawing = false; });
-  c.addEventListener('mouseleave', function()  { drawing = false; });
-  c.addEventListener('touchstart', function(e) { e.preventDefault(); drawing = true;  var p = getPos(e); lx = p[0]; ly = p[1]; }, { passive: false });
-  c.addEventListener('touchmove',  function(e) { e.preventDefault(); if (!drawing) return; var p = getPos(e); draw(p[0], p[1]); }, { passive: false });
-  c.addEventListener('touchend',   function()  { drawing = false; });
-}
-
-function clearCanvas(id) {
-  var c = document.getElementById(id);
-  if (!c) return;
-  var ctx = c.getContext('2d');
-  ctx.clearRect(0, 0, c.width, c.height);
-}
-function isCanvasEmpty(id) {
-  var c = document.getElementById(id);
-  if (!c) return true;
-  var data = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
-  for (var i = 0; i < data.length; i++) { if (data[i] !== 0) return false; }
-  return true;
-}
-
-// ── TOAST ───────────────────────────────────────────────────────
-function toast(msg, err) {
-  var t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast' + (err ? ' err' : '') + ' show';
-  setTimeout(function() { t.className = 'toast'; }, 3200);
-}
-
-// ── BUILD PDF ───────────────────────────────────────────────────
-function buildPDF() {
-  var jsPDF = window.jspdf.jsPDF;
-  var doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  var W = 210, M = 18, y = M;
-  var contentW = W - M * 2;
-
-  function fld(lbl, val, x, yy) {
-    doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(120,120,130);
-    doc.text(lbl.toUpperCase(), x, yy);
-    doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(26,26,26);
-    doc.text(val || '-', x, yy + 5);
-  }
-  function sec(t, yy) {
-    if (yy > 240) { doc.addPage(); yy = M; }
-    doc.setFillColor(26,26,46); doc.rect(M, yy, contentW, 6, 'F');
-    doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
-    doc.text(t.toUpperCase(), M + 4, yy + 4);
-    return yy + 10;
-  }
-  function safeText(val, maxW) {
-    if (!val) return '-';
-    var lines = doc.splitTextToSize(val, maxW);
-    return lines[0];
-  }
-
-  // Header bar
-  doc.setFillColor(26,26,46); doc.rect(0,0,W,22,'F');
-  doc.setFontSize(14); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
-  doc.text('BINAGORA', M, 12);
-  doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(180,180,200);
-  doc.text('Equipment Shipping Note', M, 18);
-
-  doc.setFillColor(232,83,58);
-  doc.roundedRect(W - 62, 4, 44, 14, 2, 2, 'F');
-  doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
-  doc.text(document.getElementById('numero').value, W - 58, 10);
-  doc.setFontSize(8); doc.setFont('helvetica','normal');
-  doc.text(document.getElementById('fecha').value, W - 58, 15);
-  y = 30;
-
-  // ORIGIN
-  y = sec('Shipping Origin', y);
-  fld('Pickup Address', document.getElementById('origen-dir').value, M, y);
-  y += 12;
-  fld('Sender', document.getElementById('origen-empresa').value, M, y);
-  fld('Phone',  document.getElementById('origen-tel').value, M + 95, y);
-  y += 14;
-
-  // DESTINATION
-  y = sec('Destination', y);
-  fld('Delivery Address', document.getElementById('dest-dir').value, M, y);
-  y += 12;
-  fld('Receiver', document.getElementById('dest-empresa').value, M, y);
-  fld('Phone',    document.getElementById('dest-tel').value, M + 95, y);
-  y += 14;
-
-  // EQUIPMENT
-  y = sec('Equipment Details', y);
-  fld('Equipment Type', document.getElementById('eq-tipo').value,  M, y);
-  fld('Brand / Model',  document.getElementById('eq-marca').value, M + 60, y);
-  y += 12;
-  fld('Serial No.',     document.getElementById('eq-serie').value, M, y);
-  fld('Included Accessories', document.getElementById('eq-accesorios').value, M + 60, y);
-  y += 12;
-
-  doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(120,120,130);
-  doc.text('DEVICE STATUS', M, y);
-  var statusText = estadoDispositivo || '-';
-  var sc = estadoDispositivo === 'Good' ? [34,197,94] : estadoDispositivo === 'Has Details' ? [245,158,11] : [232,83,58];
-  if (estadoDispositivo) {
-    doc.setFillColor(sc[0],sc[1],sc[2]);
-    doc.roundedRect(M, y+2, 50, 7, 1.5, 1.5, 'F');
-    doc.setFontSize(8.5); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
-    doc.text(statusText, M+3, y+7);
-  } else {
-    doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(26,26,26);
-    doc.text('-', M, y+7);
-  }
-  y += 14;
-
-  var obs = document.getElementById('eq-obs').value;
-  if (obs) {
-    fld('Condition Notes', '', M, y);
-    doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(26,26,26);
-    var splitObs = doc.splitTextToSize(obs, contentW - 5);
-    doc.text(splitObs, M, y + 5);
-    y += 5 + (splitObs.length * 4.5);
-    y += 4;
-  }
-
-  // COURIER
-  y = sec('Courier Information', y);
-  fld('Courier Company', document.getElementById('cour-empresa').value, M, y);
-  fld('Carrier Name',    document.getElementById('cour-nombre').value,  M + 90, y);
-  y += 12;
-  fld('ID / Document',  document.getElementById('cour-dni').value,     M, y);
-  fld('Phone',          document.getElementById('cour-tel').value,     M + 60, y);
-  fld('License Plate',  document.getElementById('cour-patente').value, M + 120, y);
-  y += 14;
-
-  // PICKUP CONFIRMATION
-  if (y > 210) { doc.addPage(); y = M; }
-  y = sec('Pickup Confirmation', y);
-  doc.setFontSize(8); doc.setFont('helvetica','italic'); doc.setTextColor(100,100,110);
-  doc.text('I hereby confirm receipt of the equipment detailed in this document for transport.', M, y);
-  y += 8;
-  fld('Full Name',             document.getElementById('firma-nombre').value,    M, y);
-  fld('Date & Time of Pickup', document.getElementById('firma-datetime').value, M + 95, y);
-  y += 12;
-
-  if (y + 35 > 275) { doc.addPage(); y = M; }
-  if (!isCanvasEmpty('sig-carrier')) {
-    var cSig = document.getElementById('sig-carrier').toDataURL('image/png');
-    doc.addImage(cSig, 'PNG', M, y, 80, 25);
-  }
-  doc.setDrawColor(200,200,200); doc.rect(M, y, 80, 25);
-  doc.setFontSize(7.5); doc.setFont('helvetica','normal'); doc.setTextColor(150,150,150);
-  doc.text('Carrier Signature', M, y + 28);
-  y += 34;
-
-  // DELIVERY CONFIRMATION
-  if (y + 50 > 275) { doc.addPage(); y = M; }
-  y = sec('Delivery Confirmation', y);
-  var recvName = document.getElementById('recv-nombre').value;
-  var recvDate = document.getElementById('recv-datetime').value;
-  fld('Receiver Full Name',      recvName || '-', M, y);
-  fld('Date & Time of Delivery', recvDate || '-', M + 95, y);
-  y += 12;
-
-  if (!isCanvasEmpty('sig-receiver')) {
-    var rSig = document.getElementById('sig-receiver').toDataURL('image/png');
-    doc.addImage(rSig, 'PNG', M, y, 80, 25);
-    doc.setDrawColor(200,200,200); doc.rect(M, y, 80, 25);
-    doc.setFontSize(7.5); doc.setFont('helvetica','normal'); doc.setTextColor(150,150,150);
-    doc.text('Receiver Signature', M, y + 28);
-  } else {
-    doc.setDrawColor(200,200,200); doc.rect(M, y, 80, 25);
-    doc.setFontSize(8); doc.setFont('helvetica','italic'); doc.setTextColor(180,180,180);
-    doc.text('Signature pending', M + 4, y + 13);
-  }
-
-  // Footer (always at bottom of last page)
-  var footerY = Math.max(y + 20, 280);
-  if (footerY > 290) footerY = 290;
-  doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(180,180,180);
-  doc.text('Generated by Binagora | ' + new Date().toLocaleString('en-US'), M, footerY);
-  return doc;
-}
-
-// ── DOWNLOAD ────────────────────────────────────────────────────
-function downloadPDF() {
-  if (!validatePanel(4)) return;
-  if (isCanvasEmpty('sig-carrier')) { toast('The carrier must sign first', true); return; }
-  var filename = 'ShippingNote-' + document.getElementById('numero').value + '.pdf';
-  buildPDF().save(filename);
-  toast('PDF downloaded OK');
-}
-
-// ── SEND EMAIL ──────────────────────────────────────────────────
-function downloadAndSend() {
-  if (!validatePanel(4)) return;
-  if (isCanvasEmpty('sig-carrier')) { toast('The carrier must sign first', true); return; }
-  if (!ejsPK || !ejsSVC || !ejsTPL) { toast('Configure EmailJS first - click gear icon', true); return; }
-
-  var esnNum = document.getElementById('numero').value;
-  var filename = 'ShippingNote-' + esnNum + '.pdf';
-  var doc = buildPDF();
-  doc.save(filename);
-  toast('Sending email with PDF attached...');
-
-  // Get PDF as base64 for email attachment
-  var pdfBase64 = doc.output('datauristring');
-
-  emailjs.init(ejsPK);
-  emailjs.send(ejsSVC, ejsTPL, {
-    to_email:        RECIPIENT,
-    esn_number:      esnNum,
-    esn_date:        document.getElementById('fecha').value,
-    origin:          document.getElementById('origen-empresa').value,
-    destination:     document.getElementById('dest-empresa').value,
-    equipment:       document.getElementById('eq-tipo').value + ' - ' + document.getElementById('eq-marca').value,
-    serial:          document.getElementById('eq-serie').value,
-    carrier_name:    document.getElementById('cour-nombre').value,
-    courier_company: document.getElementById('cour-empresa').value,
-    device_status:   estadoDispositivo || '-',
-    pdf_attachment:  pdfBase64,
-    pdf_filename:    filename
-  }).then(function() {
-    // Save to Google Sheet (if configured)
-    saveToSheet();
-    // Show success with receive link
-    if (getAppsScriptUrl()) {
-      showReceiveLink();
-    } else {
-      document.getElementById('success-msg').textContent = 'PDF downloaded and sent with attachment to ' + RECIPIENT;
-    }
-    document.getElementById('success-overlay').classList.add('show');
-  }).catch(function(err) {
-    console.error('EmailJS error:', err);
-    toast('Email error: ' + (err.text || err.message || 'check your EmailJS config'), true);
-  });
-}
-
-// ── RESET ───────────────────────────────────────────────────────
-function resetForm() {
-  document.getElementById('success-overlay').classList.remove('show');
-  var inputs = document.querySelectorAll('input:not([readonly]),textarea');
-  for (var i = 0; i < inputs.length; i++) inputs[i].value = '';
-  var selects = document.querySelectorAll('select');
-  for (var i = 0; i < selects.length; i++) selects[i].selectedIndex = 0;
-  clearCanvas('sig-carrier');
-  clearCanvas('sig-receiver');
-  estadoDispositivo = '';
-  document.getElementById('btn-good').className    = 'estado-btn';
-  document.getElementById('btn-details').className = 'estado-btn';
-  document.getElementById('btn-poor').className    = 'estado-btn';
-  document.getElementById('delivery-toggle').classList.remove('open');
-  document.getElementById('delivery-section').classList.remove('open');
-  initApp();
-  goTo(0);
-}
-
-// ── CONFIG MODAL ────────────────────────────────────────────────
-function openModal()  { document.getElementById('config-modal').classList.add('show'); }
-function closeModal() { document.getElementById('config-modal').classList.remove('show'); }
-function saveConfig() {
-  ejsPK  = document.getElementById('cfg-pubkey').value.trim();
-  ejsSVC = document.getElementById('cfg-service').value.trim();
-  ejsTPL = document.getElementById('cfg-template').value.trim();
-  safeSet('ejs_pk',  ejsPK);
-  safeSet('ejs_svc', ejsSVC);
-  safeSet('ejs_tpl', ejsTPL);
-  // Save Apps Script URL
-  var asUrl = document.getElementById('cfg-apps-script').value.trim();
-  APPS_SCRIPT_URL = asUrl;
-  safeSet('apps_script_url', asUrl);
-  updateEmailStatus();
-  closeModal();
-  toast('Settings saved OK');
-}
-
-// ── GOOGLE SHEETS BACKEND ───────────────────────────────────────
-function getAppsScriptUrl() {
-  if (APPS_SCRIPT_URL) return APPS_SCRIPT_URL;
-  var stored = safeGet('apps_script_url');
-  if (stored) { APPS_SCRIPT_URL = stored; return stored; }
-  return '';
-}
-
-function saveToSheet() {
-  var url = getAppsScriptUrl();
-  if (!url) return; // silently skip if not configured
-  var sigData = '';
-  try {
-    if (!isCanvasEmpty('sig-carrier')) {
-      sigData = document.getElementById('sig-carrier').toDataURL('image/png');
-    }
-  } catch(e) {}
-  var payload = {
-    action: 'save',
-    data: {
-      esn: document.getElementById('numero').value,
-      date: document.getElementById('fecha').value,
-      originAddress: document.getElementById('origen-dir').value,
-      sender: document.getElementById('origen-empresa').value,
-      senderPhone: document.getElementById('origen-tel').value,
-      destAddress: document.getElementById('dest-dir').value,
-      receiver: document.getElementById('dest-empresa').value,
-      receiverPhone: document.getElementById('dest-tel').value,
-      eqType: document.getElementById('eq-tipo').value,
-      eqBrand: document.getElementById('eq-marca').value,
-      eqSerial: document.getElementById('eq-serie').value,
-      eqAccessories: document.getElementById('eq-accesorios').value,
-      deviceStatus: estadoDispositivo || '-',
-      conditionNotes: document.getElementById('eq-obs').value,
-      courierCompany: document.getElementById('cour-empresa').value,
-      carrierName: document.getElementById('cour-nombre').value,
-      carrierId: document.getElementById('cour-dni').value,
-      carrierPhone: document.getElementById('cour-tel').value,
-      licensePlate: document.getElementById('cour-patente').value,
-      carrierSignature: sigData,
-      pickupDatetime: document.getElementById('firma-datetime').value
-    }
-  };
-  fetch(url, {
-    method: 'POST',
-    mode: 'no-cors',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify(payload)
-  }).catch(function(e) { console.log('Sheet save error:', e); });
-}
-
-function getReceiveLink() {
-  var esn = document.getElementById('numero').value;
-  var base = window.location.origin + window.location.pathname;
-  return base + '?mode=receive&id=' + encodeURIComponent(esn);
-}
-
-function showReceiveLink() {
-  var url = getAppsScriptUrl();
-  if (!url) return; // don't show link if backend not configured
-  var link = getReceiveLink();
-  var msgEl = document.getElementById('success-msg');
-  msgEl.innerHTML = 'PDF downloaded and sent to ' + RECIPIENT +
-    '<br><br><span style="font-size:12px;color:#888;">Receiver link (share with recipient):</span>' +
-    '<div class="link-box"><input type="text" value="' + link + '" id="recv-link-input" readonly>' +
-    '<button onclick="copyRecvLink()">Copy</button></div>';
-}
-
-function copyRecvLink() {
-  var input = document.getElementById('recv-link-input');
-  if (input) {
-    input.select();
-    navigator.clipboard.writeText(input.value).then(function() {
-      toast('Link copied!');
-    }).catch(function() {
-      document.execCommand('copy');
-      toast('Link copied!');
-    });
-  }
-}
-
-// ── RECEIVE MODE ────────────────────────────────────────────────
-function checkReceiveMode() {
-  var params = new URLSearchParams(window.location.search);
-  if (params.get('mode') === 'receive' && params.get('id')) {
-    receiveMode = true;
-    document.body.classList.add('receive-mode');
-    var esnId = params.get('id');
-    document.getElementById('display-numero').textContent = 'No. ' + esnId;
-    loadReceiveData(esnId);
-    return true;
-  }
-  return false;
-}
-
-function loadReceiveData(esnId) {
-  var url = getAppsScriptUrl();
-  if (!url) {
-    document.getElementById('recv-loading').style.display = 'none';
-    document.getElementById('recv-error').style.display = 'block';
-    document.getElementById('recv-error').textContent = 'Backend not configured. Ask the sender to set up the Apps Script URL.';
-    return;
-  }
-  fetch(url + '?id=' + encodeURIComponent(esnId))
-    .then(function(r) { return r.json(); })
-    .then(function(res) {
-      document.getElementById('recv-loading').style.display = 'none';
-      if (res.error) {
-        document.getElementById('recv-error').style.display = 'block';
-        document.getElementById('recv-error').textContent = 'Error: ' + res.error;
-        return;
-      }
-      receiveData = res.data;
-      populateReceiveView(res.data);
-      document.getElementById('recv-content').style.display = 'block';
-    })
-    .catch(function(err) {
-      document.getElementById('recv-loading').style.display = 'none';
-      document.getElementById('recv-error').style.display = 'block';
-      document.getElementById('recv-error').textContent = 'Could not load shipping note. Check your connection.';
-    });
-}
-
-function populateReceiveView(d) {
-  document.getElementById('rv-origin-addr').textContent = d.originAddress || '-';
-  document.getElementById('rv-sender').textContent = d.sender || '-';
-  document.getElementById('rv-sender-phone').textContent = d.senderPhone || '-';
-  document.getElementById('rv-dest-addr').textContent = d.destAddress || '-';
-  document.getElementById('rv-receiver').textContent = d.receiver || '-';
-  document.getElementById('rv-receiver-phone').textContent = d.receiverPhone || '-';
-  document.getElementById('rv-eq-type').textContent = d.eqType || '-';
-  document.getElementById('rv-eq-brand').textContent = d.eqBrand || '-';
-  document.getElementById('rv-eq-serial').textContent = d.eqSerial || '-';
-  document.getElementById('rv-eq-accessories').textContent = d.eqAccessories || '-';
-
-  // Device status badge
-  var statusEl = document.getElementById('rv-eq-status');
-  if (d.deviceStatus && d.deviceStatus !== '-') {
-    var colors = { 'Good': '#22c55e', 'Has Details': '#f59e0b', 'Poor': '#e8533a' };
-    statusEl.innerHTML = '<span class="recv-status-badge" style="background:' +
-      (colors[d.deviceStatus] || '#888') + '">' + d.deviceStatus + '</span>';
-  } else {
-    statusEl.textContent = '-';
-  }
-
-  document.getElementById('rv-courier').textContent = d.courierCompany || '-';
-  document.getElementById('rv-carrier').textContent = d.carrierName || '-';
-  document.getElementById('rv-pickup-dt').textContent = d.pickupDatetime || '-';
-
-  // Carrier signature image
-  var sigImg = document.getElementById('rv-carrier-sig');
-  if (d.carrierSignature && d.carrierSignature.startsWith('data:')) {
-    sigImg.src = d.carrierSignature;
-  } else {
-    sigImg.style.display = 'none';
-  }
-
-  // Auto-fill delivery datetime
-  var now = new Date();
-  var mm = String(now.getMonth() + 1).padStart(2, '0');
-  var dd = String(now.getDate()).padStart(2, '0');
-  var yyyy = now.getFullYear();
-  var hh = now.getHours();
-  var min = String(now.getMinutes()).padStart(2, '0');
-  var ampm = hh >= 12 ? 'PM' : 'AM';
-  hh = hh % 12 || 12;
-  document.getElementById('rv-recv-datetime').value = mm + '/' + dd + '/' + yyyy + ', ' + String(hh).padStart(2,'0') + ':' + min + ' ' + ampm;
-
-  // Init signature canvas for receiver
-  initCanvas('sig-recv-confirm');
-
-  // If already confirmed, show banner and hide form
-  if (d.deliveryConfirmed) {
-    document.getElementById('recv-confirmed-banner').style.display = 'block';
-    document.getElementById('recv-form-section').style.display = 'none';
-  }
-}
-
-function confirmDelivery() {
-  var name = document.getElementById('rv-recv-name').value.trim();
-  if (!name) { toast('Please enter your full name', true); return; }
-  if (isCanvasEmpty('sig-recv-confirm')) { toast('Please sign to confirm delivery', true); return; }
-
-  var url = getAppsScriptUrl();
-  var sigData = document.getElementById('sig-recv-confirm').toDataURL('image/png');
-  var payload = {
-    action: 'confirm_delivery',
-    esn: receiveData.esn,
-    recvName: name,
-    recvDatetime: document.getElementById('rv-recv-datetime').value,
-    recvSignature: sigData
-  };
-
-  toast('Confirming delivery...');
-  fetch(url, {
-    method: 'POST',
-    mode: 'no-cors',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify(payload)
-  }).then(function() {
-    document.getElementById('recv-confirmed-banner').style.display = 'block';
-    document.getElementById('recv-confirmed-banner').innerHTML = '&#10004; Delivery confirmed! Thank you.';
-    toast('Delivery confirmed!');
-  }).catch(function(err) {
-    toast('Error confirming: ' + err.message, true);
-  });
-}
-
-function buildReceivePDF() {
-  if (!receiveData) return null;
-  var d = receiveData;
-  var jsPDF = window.jspdf.jsPDF;
-  var doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  var W = 210, M = 18, y = M;
-  var contentW = W - M * 2;
-
-  function fld(lbl, val, x, yy) {
-    doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(120,120,130);
-    doc.text(lbl.toUpperCase(), x, yy);
-    doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(26,26,26);
-    doc.text(val || '-', x, yy + 5);
-  }
-  function sec(t, yy) {
-    if (yy > 240) { doc.addPage(); yy = M; }
-    doc.setFillColor(26,26,46); doc.rect(M, yy, contentW, 6, 'F');
-    doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
-    doc.text(t.toUpperCase(), M + 4, yy + 4);
-    return yy + 10;
-  }
-
-  // Header
-  doc.setFillColor(26,26,46); doc.rect(0,0,W,22,'F');
-  doc.setFontSize(14); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
-  doc.text('BINAGORA', M, 12);
-  doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(180,180,200);
-  doc.text('Equipment Shipping Note', M, 18);
-  doc.setFillColor(232,83,58); doc.roundedRect(W-62, 4, 44, 14, 2, 2, 'F');
-  doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
-  doc.text(d.esn, W-58, 10);
-  doc.setFontSize(8); doc.setFont('helvetica','normal');
-  doc.text(d.date, W-58, 15);
-  y = 30;
-
-  y = sec('Shipping Origin', y);
-  fld('Pickup Address', d.originAddress, M, y); y += 12;
-  fld('Sender', d.sender, M, y); fld('Phone', d.senderPhone, M+95, y); y += 14;
-
-  y = sec('Destination', y);
-  fld('Delivery Address', d.destAddress, M, y); y += 12;
-  fld('Receiver', d.receiver, M, y); fld('Phone', d.receiverPhone, M+95, y); y += 14;
-
-  y = sec('Equipment Details', y);
-  fld('Equipment Type', d.eqType, M, y); fld('Brand / Model', d.eqBrand, M+60, y); y += 12;
-  fld('Serial No.', d.eqSerial, M, y); fld('Accessories', d.eqAccessories, M+60, y); y += 12;
-  fld('Device Status', d.deviceStatus, M, y); y += 14;
-
-  y = sec('Courier Information', y);
-  fld('Courier Company', d.courierCompany, M, y); fld('Carrier Name', d.carrierName, M+90, y); y += 14;
-
-  if (y > 210) { doc.addPage(); y = M; }
-  y = sec('Pickup Confirmation', y);
-  fld('Carrier', d.carrierName, M, y); fld('Pickup', d.pickupDatetime, M+95, y); y += 12;
-  if (d.carrierSignature && d.carrierSignature.startsWith('data:')) {
-    try { doc.addImage(d.carrierSignature, 'PNG', M, y, 80, 25); } catch(e) {}
-  }
-  doc.setDrawColor(200,200,200); doc.rect(M, y, 80, 25);
-  doc.setFontSize(7.5); doc.setFont('helvetica','normal'); doc.setTextColor(150,150,150);
-  doc.text('Carrier Signature', M, y + 28); y += 34;
-
-  if (y + 50 > 275) { doc.addPage(); y = M; }
-  y = sec('Delivery Confirmation', y);
-  var rName = document.getElementById('rv-recv-name').value || d.recvName || '-';
-  var rDt = document.getElementById('rv-recv-datetime').value || d.recvDatetime || '-';
-  fld('Receiver Full Name', rName, M, y);
-  fld('Date & Time of Delivery', rDt, M+95, y); y += 12;
-
-  if (!isCanvasEmpty('sig-recv-confirm')) {
-    var rSig = document.getElementById('sig-recv-confirm').toDataURL('image/png');
-    doc.addImage(rSig, 'PNG', M, y, 80, 25);
-    doc.setDrawColor(200,200,200); doc.rect(M, y, 80, 25);
-    doc.setFontSize(7.5); doc.setFont('helvetica','normal'); doc.setTextColor(150,150,150);
-    doc.text('Receiver Signature', M, y + 28);
-  } else {
-    doc.setDrawColor(200,200,200); doc.rect(M, y, 80, 25);
-    doc.setFontSize(8); doc.setFont('helvetica','italic'); doc.setTextColor(180,180,180);
-    doc.text('Signature pending', M+4, y+13);
-  }
-
-  var footerY = Math.max(y + 20, 280);
-  if (footerY > 290) footerY = 290;
-  doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(180,180,180);
-  doc.text('Generated by Binagora | ' + new Date().toLocaleString('en-US'), M, footerY);
-  return doc;
-}
-
-// ── EVENT LISTENERS ─────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', function() {
-  // Load Apps Script URL from localStorage
-  APPS_SCRIPT_URL = safeGet('apps_script_url') || '';
-
-  // Check if we're in receive mode
-  if (checkReceiveMode()) {
-    // Receive mode: wire up confirm + PDF buttons
-    document.getElementById('btn-confirm-delivery').addEventListener('click', confirmDelivery);
-    document.getElementById('btn-recv-pdf').addEventListener('click', function() {
-      var pdf = buildReceivePDF();
-      if (pdf) pdf.save('ShippingNote-' + receiveData.esn + '.pdf');
-    });
-    document.getElementById('clear-recv-confirm').addEventListener('click', function() { clearCanvas('sig-recv-confirm'); });
-    // Config modal (receiver might need to set Apps Script URL)
-    document.getElementById('config-btn').addEventListener('click', openModal);
-    document.getElementById('btn-cancel-modal').addEventListener('click', closeModal);
-    document.getElementById('btn-save-config').addEventListener('click', saveConfig);
-    return; // Skip normal app init
-  }
-
-  initApp();
-
-  // Navigation buttons
-  document.getElementById('btn-next-0').addEventListener('click', function() { next(0); });
-  document.getElementById('btn-next-1').addEventListener('click', function() { next(1); });
-  document.getElementById('btn-next-2').addEventListener('click', function() { next(2); });
-  document.getElementById('btn-next-3').addEventListener('click', function() { next(3); });
-  document.getElementById('btn-prev-1').addEventListener('click', function() { prev(1); });
-  document.getElementById('btn-prev-2').addEventListener('click', function() { prev(2); });
-  document.getElementById('btn-prev-3').addEventListener('click', function() { prev(3); });
-  document.getElementById('btn-prev-4').addEventListener('click', function() { prev(4); });
-
-  // Action buttons
-  document.getElementById('btn-download').addEventListener('click', downloadPDF);
-  document.getElementById('btn-send').addEventListener('click', downloadAndSend);
-  document.getElementById('btn-new').addEventListener('click', resetForm);
-
-  // Signature clear buttons
-  document.getElementById('clear-carrier').addEventListener('click', function() { clearCanvas('sig-carrier'); });
-  document.getElementById('clear-receiver').addEventListener('click', function() { clearCanvas('sig-receiver'); });
-
-  // Delivery toggle
-  document.getElementById('delivery-toggle').addEventListener('click', toggleDelivery);
-
-  // Config modal
-  document.getElementById('config-btn').addEventListener('click', openModal);
-  document.getElementById('btn-cancel-modal').addEventListener('click', closeModal);
-  document.getElementById('btn-save-config').addEventListener('click', saveConfig);
-});
-</script>
-</body>
-</html>
+function goTo(n) {��\�[�[�H��[Y[��]Y\�T�[X�ܐ[
+	˜[�[	�N�\��\�H��[Y[��]Y\�T�[X�ܐ[
+	˜�\	�N�܈
+�\�HH�H[�[˛[���J��H[�[��WK��\��\���[[ݙJ	�X�]�I�N�܈
+�\�HH�H�\˛[���J��H�\��WK��\��\���[[ݙJ	�X�]�I�N��[Y[���][[Y[��RY
+	�[�[I�
+��K��\��\��Y
+	�X�]�I�N�\�ۗK��\��\��Y
+	�X�]�I�N�[��˜�ܛ��
+NB��[��[ۈ�^
+�HY�
+]�[Y]T[�[
+�JH�]\������
+�JN��[Y[��]Y\�T�[X�ܐ[
+	˜�\	�VۗK��\��\��Y
+	�ۙI�NB��[��[ۈ�]��H�����HJN�B����8� 8� �SQUSӈ8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� ��[��[ۈ�[Y]T[�[
+�H�\��\HH���ܚY�[�Y\��	�ܚY�[�Y[\�\�I�K�N���\�Y\��	�\�Y[\�\�I�K�����\K]\��	�\K[X\��I�	�\K\�\�YI�K�Έ����\�Y[\�\�I�	���\�[��X��I�	���\�Y�I�K�
+��ٚ\�XK[��X��I�B�N�\��Y[�H�\VۗH�N�\���H�YN�܈
+�\�HH�H�Y[˛[���J��H�\�[H��[Y[���][[Y[��RY
+�Y[��WJNY�
+Y[��[YK��[J
+JH[��[K��ܙ\���܈H	��N
+L��I���H�[�N
+�[��[ۊJ^��][Y[�]
+�[��[ۊ
+^�K��[K��ܙ\���܈H	���K�
+N�JJ[
+NB�B�Y�
+[��H�\�
+	�X\�H�[[�[�\]Z\�Y�Y[�
+
+�I��YJN�]\����B����8� 8� U�P�H�UT�8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� ��[��[ۈ�]\�Y��[
+H\�Y�\���]]��H�[��[Y[���][[Y[��RY
+	؝�Y���	�K��\�Ә[YHH	�\�Y�X�����[Y[���][[Y[��RY
+	؝�Y]Z[��K��\�Ә[YHH	�\�Y�X�����[Y[���][[Y[��RY
+	؝�\�܉�K��\�Ә[YHH	�\�Y�X���Y�
+�[OOH	����	�H��[Y[���][[Y[��RY
+	؝�Y���	�K��\�Ә[YHH	�\�Y�X���[Y���	�Y�
+�[OOH	�\�]Z[��H��[Y[���][[Y[��RY
+	؝�Y]Z[��K��\�Ә[YHH	�\�Y�X���[Y]Z[��Y�
+�[OOH	��܉�H��[Y[���][[Y[��RY
+	؝�\�܉�K��\�Ә[YHH	�\�Y�X���[\�܉�B����8� 8� �SӐSSU�T�H8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� ��[��[ۈ���Q[]�\�J
+H��[Y[���][[Y[��RY
+	�[]�\�K]���I�K��\��\�����J	��[��N��[Y[���][[Y[��RY
+	�[]�\�K\�X�[ۉ�K��\��\�����J	��[��NB����8� 8� �S��T�
+�Yۘ]\�JH8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� ��[��[ۈ[�]�[��\�Y
+H�\��H��[Y[���][[Y[��RY
+Y
+NY�
+X�H�]\���\��H˙�]�۝^
+	̙	�N������T�[HH	��XLXL�I���[�U�YH��N��[�P�\H	ܛ�[�	���[�R��[�H	ܛ�[�	��\��]�[��H�[�KHHH��[��[ۈ�]��JH�\��H˙�]��[�[���Y[��X�
+
+N�\��H˝�Y����Y�\��HH˚ZY����ZY�Y�
+K��X�\�H�]\���K��X�\��K��Y[�H��Y�
+H
+��
+K��X�\��K��Y[�HH���
+H
+��WN�]\���K��Y[�H��Y�
+H
+��
+K��Y[�HH���
+H
+��WNB��[��[ۈ�]�JH����Y�[�]
+
+N���[ݙU�JN���[�U�JN�������J
+N�H�HHN�B��˘Y]�[�\�[�\�	�[�\�Y�ۉ��[��[ۊJH��]�[��H�YN��\�H�]��JN�H�N�HH�WN�JN˘Y]�[�\�[�\�	�[�\�[[ݙI��[��[ۊJH�Y�
+Y�]�[��H�]\����\�H�]��JN��]��K�WJN�JN˘Y]�[�\�[�\�	�[�\�]\	��[��[ۊ
+H��]�[��H�[�N�JN˘Y]�[�\�[�\�	�[�\�[X]�I��[��[ۊ
+H��]�[��H�[�N�JN˘Y]�[�\�[�\�	��X��\�	��[��[ۊJH�K��]�[�Y�][
+
+N��]�[��H�YN��\�H�]��JN�H�N�HH�WN�K�\��]�N��[�HJN˘Y]�[�\�[�\�	��X�[ݙI��[��[ۊJH�K��]�[�Y�][
+
+N�Y�
+Y�]�[��H�]\����\�H�]��JN��]��K�WJN�K�\��]�N��[�HJN˘Y]�[�\�[�\�	��X�[�	��[��[ۊ
+H��]�[��H�[�N�JNB���[��[ۈ�X\��[��\�Y
+H�\��H��[Y[���][[Y[��RY
+Y
+NY�
+X�H�]\���\��H˙�]�۝^
+	̙	�N���X\��X�
+˝�Y˚ZY�
+NB��[��[ۈ\��[��\�[\JY
+H�\��H��[Y[���][[Y[��RY
+Y
+NY�
+X�H�]\���YN�\�]HH˙�]�۝^
+	̙	�K��][XY�Q]J˝�Y˚ZY�
+K�]N�܈
+�\�HH�H]K�[���J��H�Y�
+]V�WHOOH
+H�]\���[�N�B��]\���YNB����8� 8� �T�8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� ��[��[ۈ�\�
+\��\��H�\�H��[Y[���][[Y[��RY
+	��\�	�N�^�۝[�H\����\�Ә[YHH	��\�	�
+�
+\���	�\����	��H
+�	������][Y[�]
+�[��[ۊ
+H���\�Ә[YHH	��\�	��K̌
+NB����8� 8� �RS�8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� ��[��[ۈ�Z[�
+H�\����H�[��˚��������\���H�]�����ܚY[�][ێ�	�ܝ�Z]	�[�]�	�[I��ܛX]�	�M	�JN�\��H�LHHNHHN�\��۝[��H�HH
+����[��[ۈ�
+��[^JH�˜�]�۝�^�J
+ˍJN��˜�]�۝
+	�[�]X�I�	؛�	�N��˜�]^��܊L�L�L�
+N�˝^
+���\\��\�J
+K^JN�˜�]�۝�^�JL
+N��˜�]�۝
+	�[�]X�I�	ۛܛX[	�N��˜�]^��܊������N�˝^
+�[	�I�^H
+�
+JNB��[��[ۈ�X�^JHY�
+^H��
+H��˘YY�J
+N�^HHN�B��˜�]�[��܊����
+
+�N��˜�X�
+K^K�۝[��
+�	щ�N�˜�]�۝�^�J
+N��˜�]�۝
+	�[�]X�I�	؛�	�N��˜�]^��܊�MK�MK�MJN�˝^
+��\\��\�J
+KH
+�
+^H
+�
+N�]\��^H
+�LB��[��[ۈ�Y�U^
+�[X^�HY�
+]�[
+H�]\��	�I��\�[�\�H�˜�]^��^�J�[X^�N�]\��[�\��NB����XY\��\���˜�]�[��܊����
+
+�N��˜�X�
+���	щ�N�˜�]�۝�^�JM
+N��˜�]�۝
+	�[�]X�I�	؛�	�N��˜�]^��܊�MK�MK�MJN�˝^
+	ВS�Q�ԐI�KL�N�˜�]�۝�^�JJN��˜�]�۝
+	�[�]X�I�	ۛܛX[	�N��˜�]^��܊NN�
+N�˝^
+	�\]Z\Y[��\[����I�KN
+N��˜�]�[��܊�̋�
+N
+N�˜��[�Y�X�
+�H
+��
+
+
+M��	щ�N�˜�]�۝�^�JJN��˜�]�۝
+	�[�]X�I�	؛�	�N��˜�]^��܊�MK�MK�MJN�˝^
+��[Y[���][[Y[��RY
+	۝[Y\���K��[YK�H
+NL
+N�˜�]�۝�^�J
+N��˜�]�۝
+	�[�]X�I�	ۛܛX[	�N�˝^
+��[Y[���][[Y[��RY
+	ٙX�I�K��[YK�H
+NMJNHH����ԒQ�S��HH�X�	��\[��ܚY�[��JN�
+	�X��\Y�\�����[Y[���][[Y[��RY
+	�ܚY�[�Y\��K��[YKKJNH
+�HL��
+	��[�\����[Y[���][[Y[��RY
+	�ܚY�[�Y[\�\�I�K��[YKKJN�
+	�ۙI���[Y[���][[Y[��RY
+	�ܚY�[�][	�K��[YKH
+�MKJNH
+�HM���T�S�USӂ�HH�X�	�\�[�][ۉ�JN�
+	�[]�\�HY�\�����[Y[���][[Y[��RY
+	�\�Y\��K��[YKKJNH
+�HL��
+	ԙX�Z]�\����[Y[���][[Y[��RY
+	�\�Y[\�\�I�K��[YKKJN�
+	�ۙI���[Y[���][[Y[��RY
+	�\�][	�K��[YKH
+�MKJNH
+�HM���TURTQS��HH�X�	�\]Z\Y[�]Z[��JN�
+	�\]Z\Y[�\I���[Y[���][[Y[��RY
+	�\K]\��K��[YKKJN�
+	М�[��[�[	���[Y[���][[Y[��RY
+	�\K[X\��I�K��[YKH
+�
+�JNH
+�HL��
+	��\�X[�ˉ���[Y[���][[Y[��RY
+	�\K\�\�YI�K��[YKKJN�
+	�[��YYX��\��ܚY\����[Y[���][[Y[��RY
+	�\KXX��\�ܚ[���K��[YKH
+�
+�JNH
+�HL���˜�]�۝�^�J
+ˍJN��˜�]�۝
+	�[�]X�I�	؛�	�N��˜�]^��܊L�L�L�
+N�˝^
+	�U�P�H�UT��KJN�\��]\�^H\�Y�\���]]��	�I��\���H\�Y�\���]]��OOH	����	����NM�MH�\�Y�\���]]��OOH	�\�]Z[���̍
+KMNLWH�̌̋�
+NNY�
+\�Y�\���]]��H�˜�]�[��܊���K���WK��̗JN�˜��[�Y�X�
+KJ̋
+L
+�K�KK�K	щ�N�˜�]�۝�^�J�JN��˜�]�۝
+	�[�]X�I�	؛�	�N��˜�]^��܊�MK�MK�MJN�˝^
+�]\�^J��J��NH[�H�˜�]�۝�^�JL
+N��˜�]�۝
+	�[�]X�I�	ۛܛX[	�N��˜�]^��܊������N�˝^
+	�I�KJ��NB�H
+�HM��\�؜�H��[Y[���][[Y[��RY
+	�\K[؜��K��[YNY�
+؜�H�
+	��ۙ][ۈ��\��	��KJN�˜�]�۝�^�JJN��˜�]�۝
+	�[�]X�I�	ۛܛX[	�N��˜�]^��܊������N�\��]؜�H�˜�]^��^�J؜��۝[��H
+JN�˝^
+�]؜�KH
+�
+JNH
+�H
+H
+�
+�]؜˛[��
+�
+�JNH
+�H
+B������T�QT��HH�X�	���\�Y\�[��ܛX][ۉ�JN�
+	���\�Y\���\[�I���[Y[���][[Y[��RY
+	���\�Y[\�\�I�K��[YKKJN�
+	��\��Y\��[YI���[Y[���][[Y[��RY
+	���\�[��X��I�K��[YKH
+�LJNH
+�HL��
+	�Q���[Y[�	���[Y[���][[Y[��RY
+	���\�Y�I�K��[YKKJN�
+	�ۙI���[Y[���][[Y[��RY
+	���\�][	�K��[YKH
+�
+�JN�
+	�X�[��H]I���[Y[���][[Y[��RY
+	���\�\][�I�K��[YKH
+�L�JNH
+�HM���P��T�ӑ�T�PUSӂ�Y�
+H��L
+H��˘YY�J
+N�HHN�B�HH�X�	�X��\�ۙ�\�X][ۉ�JN�˜�]�۝�^�J
+N��˜�]�۝
+	�[�]X�I�	�][X��N��˜�]^��܊LLLL
+N�˝^
+	�H\�X�H�ۙ�\�H�X�Z\وH\]Z\Y[�]Z[Y[�\���[Y[��܈�[��ܝ��KJNH
+�H�
+	ѝ[�[YI���[Y[���][[Y[��RY
+	ٚ\�XK[��X��I�K��[YKKJN�
+	�]H	�[YHوX��\	���[Y[���][[Y[��RY
+	ٚ\�XKY]][YI�K��[YKH
+�MKJNH
+�HL��Y�
+H
+��H���JH��˘YY�J
+N�HHN�B�Y�
+Z\��[��\�[\J	��Y�X�\��Y\��JH�\���Y�H��[Y[���][[Y[��RY
+	��Y�X�\��Y\��K��]UT�
+	�[XY�K����N�˘Y[XY�J��Y�	����KK�JNB��˜�]�]���܊���
+N��˜�X�
+KK�JN�˜�]�۝�^�J
+ˍJN��˜�]�۝
+	�[�]X�I�	ۛܛX[	�N��˜�]^��܊MLMLML
+N�˝^
+	��\��Y\��Yۘ]\�I�KH
+��
+NH
+�H����SU�T�H�ӑ�T�PUSӂ�Y�
+H
+�
+L���JH��˘YY�J
+N�HHN�B�HH�X�	�[]�\�H�ۙ�\�X][ۉ�JN�\��Xݓ�[YHH��[Y[���][[Y[��RY
+	ܙX݋[��X��I�K��[YN�\��Xݑ]HH��[Y[���][[Y[��RY
+	ܙX݋Y]][YI�K��[YN�
+	ԙX�Z]�\��[�[YI��Xݓ�[YH	�I�KJN�
+	�]H	�[YHو[]�\�I��Xݑ]H	�I�H
+�MKJNH
+�HL��Y�
+Z\��[��\�[\J	��Y�\�X�Z]�\��JH�\���Y�H��[Y[���][[Y[��RY
+	��Y�\�X�Z]�\��K��]UT�
+	�[XY�K����N�˘Y[XY�J��Y�	����KK�JN�˜�]�]���܊���
+N��˜�X�
+KK�JN�˜�]�۝�^�J
+ˍJN��˜�]�۝
+	�[�]X�I�	ۛܛX[	�N��˜�]^��܊MLMLML
+N�˝^
+	ԙX�Z]�\��Yۘ]\�I�KH
+��
+NH[�H�˜�]�]���܊���
+N��˜�X�
+KK�JN�˜�]�۝�^�J
+N��˜�]�۝
+	�[�]X�I�	�][X��N��˜�]^��܊NNN
+N�˝^
+	��Yۘ]\�H[�[���H
+�
+H
+�L�NB�������\�
+[�^\�]���Hو\�Y�JB��\����\�HHX]�X^
+H
+���
+NY�
+���\�H��L
+H���\�HH�L�˜�]�۝�^�J
+�N��˜�]�۝
+	�[�]X�I�	ۛܛX[	�N��˜�]^��܊NNN
+N�˝^
+	��[�\�]Y�H�[�Y�ܘH	�
+��]�]J
+K����[T��[��	�[�UT��KK���\�JN�]\����B����8� 8� �ӓ�Q8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� ��[��[ۈ�ۛ�Y�
+HY�
+]�[Y]T[�[
+
+JH�]\��Y�
+\��[��\�[\J	��Y�X�\��Y\��JH��\�
+	�H�\��Y\�]\��Yۈ�\��	��YJN��]\���B��\��[[�[YHH	��\[�ӛ�KI�
+���[Y[���][[Y[��RY
+	۝[Y\���K��[YH
+�	˜���Z[�
+K��]�J�[[�[YJN�\�
+	���ۛ�YY���NB����8� 8� �S�SPRS8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� ��[��[ۈ�ۛ�Y[��[�
+
+HY�
+]�[Y]T[�[
+
+JH�]\��Y�
+\��[��\�[\J	��Y�X�\��Y\��JH��\�
+	�H�\��Y\�]\��Yۈ�\��	��YJN��]\���B��\�\�H�]\��ܚ\\�
+
+NY�
+]\�
+H��\�
+	��ۙ�Y�\�H����H\��ܚ\�\��H�X���X\�X�ۉ��YJN��]\���B���\�\ۓ�[HH��[Y[���][[Y[��RY
+	۝[Y\���K��[YN�\��[[�[YHH	��\[�ӛ�KI�
+�\ۓ�[H
+�	˜���\���H�Z[�
+N�˜�]�J�[[�[YJN�\�
+	��[�[��[XZ[�]�]X�Y����N����]�\��]��\�M�
+��]K]\�H�Y�^
+B��\���\�M�H�˛�]]
+	�]]\�\��[���K��]
+	�	�V�WN��\�^[�YHX�[ێ�	��[��[XZ[	����[XZ[��P�TQS��\ۗ۝[X�\��\ۓ�[K�\ۗ�]N���[Y[���][[Y[��RY
+	ٙX�I�K��[YK�ܚY�[����[Y[���][[Y[��RY
+	�ܚY�[�Y[\�\�I�K��[YK�\�[�][ێ���[Y[���][[Y[��RY
+	�\�Y[\�\�I�K��[YK�\]Z\Y[����[Y[���][[Y[��RY
+	�\K]\��K��[YH
+�	�H	�
+���[Y[���][[Y[��RY
+	�\K[X\��I�K��[YK��\�X[���[Y[���][[Y[��RY
+	�\K\�\�YI�K��[YK��\��Y\�ۘ[YN���[Y[���][[Y[��RY
+	���\�[��X��I�K��[YK���\�Y\����\[�N���[Y[���][[Y[��RY
+	���\�Y[\�\�I�K��[YK�]�X�W��]\Έ\�Y�\���]]��	�I���ؘ\�M����\�M���ٚ[[�[YN��[[�[YK�]N���X��ܛQ]J
+B�N��]�
+\�Y]��	���	��[�N�	ۛ�X�ܜ���XY\�Έ�	��۝[�U\IΈ	�^�Z[��K���N���Ӌ���[��Y�J^[�Y
+B�JK�[��[��[ۊ
+H������X��\���]�X�Z]�H[���ԙX�Z]�S[��
+N��[Y[���][[Y[��RY
+	��X��\��[ݙ\�^I�K��\��\��Y
+	�����NJK��]�
+�[��[ۊ\��H�ۜ��K�\��܊	��[�\��܎��\��N�\�
+	�[XZ[\��܎�	�
+�\���Y\��Y�K�YJNJNB����8� 8� �T�U8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� ��[��[ۈ�\�]�ܛJ
+H��[Y[���][[Y[��RY
+	��X��\��[ݙ\�^I�K��\��\���[[ݙJ	�����N�\�[�]�H��[Y[��]Y\�T�[X�ܐ[
+	�[�]���
+ܙXYۛWJK^\�XI�N�܈
+�\�HH�H[�]˛[���J��H[�]��WK��[YHH	���\��[X��H��[Y[��]Y\�T�[X�ܐ[
+	��[X�	�N�܈
+�\�HH�H�[X�˛[���J��H�[X���WK��[X�Y[�^H�X\��[��\�	��Y�X�\��Y\��N�X\��[��\�	��Y�\�X�Z]�\��N\�Y�\���]]��H	����[Y[���][[Y[��RY
+	؝�Y���	�K��\�Ә[YHH	�\�Y�X�����[Y[���][[Y[��RY
+	؝�Y]Z[��K��\�Ә[YHH	�\�Y�X�����[Y[���][[Y[��RY
+	؝�\�܉�K��\�Ә[YHH	�\�Y�X�����[Y[���][[Y[��RY
+	�[]�\�K]���I�K��\��\���[[ݙJ	��[��N��[Y[���][[Y[��RY
+	�[]�\�K\�X�[ۉ�K��\��\���[[ݙJ	��[��N[�]\
+
+N���
+NB����8� 8� �ӑ�Q�S�S8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� ��[��[ۈ�[�[�[
+
+H���[Y[���][[Y[��RY
+	��ۙ�Y�[[�[	�K��\��\��Y
+	�����N�B��[��[ۈ���S[�[
+
+H���[Y[���][[Y[��RY
+	��ۙ�Y�[[�[	�K��\��\���[[ݙJ	�����N�B��[��[ۈ�]�P�ۙ�Y�
+H���]�H\��ܚ\T���\�\�\�H��[Y[���][[Y[��RY
+	�ٙ�X\�\�ܚ\	�K��[YK��[J
+N���]�H�X�\Y[�[XZ[��\��X�\H��[Y[���][[Y[��RY
+	�ٙ�\�X�\Y[�	�K��[YK��[J
+NY�
+�X�\
+H��P�TQS�H�X�\��Y�T�]
+	�\ۗܙX�\Y[�	��X�\
+N�B�T���ԒT�T�H\�\��Y�T�]
+	�\���ܚ\�\�	�\�\�
+N\]Q[XZ[�]\�
+N���S[�[
+
+N�\�
+	��][����]�Y���NB����8� 8� ����H�QU��P��S�8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� ��[��[ۈ�]\��ܚ\\�
+
+HY�
+T���ԒT�T�
+H�]\��T���ԒT�T��\��ܙYH�Y�Q�]
+	�\���ܚ\�\�	�NY�
+�ܙY
+H�T���ԒT�T�H�ܙY��]\���ܙY�B��]\��	��B���[��[ۈ��X��ܛQ]J
+H�\��Y�]HH	���HY�
+Z\��[��\�[\J	��Y�X�\��Y\��JH�Y�]HH��[Y[���][[Y[��RY
+	��Y�X�\��Y\��K��]UT�
+	�[XY�K����NB�H�]�
+JH�B��]\��\ێ���[Y[���][[Y[��RY
+	۝[Y\���K��[YK�]N���[Y[���][[Y[��RY
+	ٙX�I�K��[YK�ܚY�[�Y�\�Έ��[Y[���][[Y[��RY
+	�ܚY�[�Y\��K��[YK��[�\����[Y[���][[Y[��RY
+	�ܚY�[�Y[\�\�I�K��[YK��[�\�ۙN���[Y[���][[Y[��RY
+	�ܚY�[�][	�K��[YK�\�Y�\�Έ��[Y[���][[Y[��RY
+	�\�Y\��K��[YK��X�Z]�\����[Y[���][[Y[��RY
+	�\�Y[\�\�I�K��[YK��X�Z]�\�ۙN���[Y[���][[Y[��RY
+	�\�][	�K��[YK�\U\N���[Y[���][[Y[��RY
+	�\K]\��K��[YK�\P��[����[Y[���][[Y[��RY
+	�\K[X\��I�K��[YK�\T�\�X[���[Y[���][[Y[��RY
+	�\K\�\�YI�K��[YK�\PX��\��ܚY\Έ��[Y[���][[Y[��RY
+	�\KXX��\�ܚ[���K��[YK�]�X�T�]\Έ\�Y�\���]]��	�I���ۙ][ۓ��\Έ��[Y[���][[Y[��RY
+	�\K[؜��K��[YK���\�Y\���\[�N���[Y[���][[Y[��RY
+	���\�Y[\�\�I�K��[YK��\��Y\��[YN���[Y[���][[Y[��RY
+	���\�[��X��I�K��[YK��\��Y\�Y���[Y[���][[Y[��RY
+	���\�Y�I�K��[YK��\��Y\�ۙN���[Y[���][[Y[��RY
+	���\�][	�K��[YK�X�[��T]N���[Y[���][[Y[��RY
+	���\�\][�I�K��[YK��\��Y\��Yۘ]\�N��Y�]K�X��\]][YN���[Y[���][[Y[��RY
+	ٚ\�XKY]][YI�K��[YB�NB���[��[ۈ�]�U��Y]
+
+H�\�\�H�]\��ܚ\\�
+
+NY�
+]\�
+H�]\���\�^[�YH�X�[ێ�	��]�I�]N���X��ܛQ]J
+HN�]�
+\�Y]��	���	��[�N�	ۛ�X�ܜ���XY\�Έ�	��۝[�U\IΈ	�^�Z[��K���N���Ӌ���[��Y�J^[�Y
+B�JK��]�
+�[��[ۊJH��ۜ��K���	��Y]�]�H\��܎��JN�JNB���[��[ۈ�]�X�Z]�S[��
+H�\�\ۈH��[Y[���][[Y[��RY
+	۝[Y\���K��[YN�\��\�HH�[��˛��][ۋ�ܚY�[�
+��[��˛��][ۋ�]�[YN�]\���\�H
+�	��[�O\�X�Z]�I�YI�
+�[���UT�P��\ۙ[�
+\ۊNB���[��[ۈ��ԙX�Z]�S[��
+H�\�\�H�]\��ܚ\\�
+
+NY�
+]\�
+H�]\�����ۉ����[��Y��X��[����ۙ�Y�\�Y��\�[��H�]�X�Z]�S[��
+N�\�\��[H��[Y[���][[Y[��RY
+	��X��\��[\���N\��[�[��\�SH	���ۛ�YY[��[��	�
+��P�TQS�
+	��������[��[OH��۝\�^�N�L����܎��ȏ��X�Z]�\�[��
+�\�H�]�X�\Y[�
+N���[���
+	�]��\��H�[��X����[�]\OH�^��[YOH��
+�[��
+�	ȈYH��X݋[[��Z[�]��XYۛO��
+	��]ۈۘ�X��H���T�Xݓ[��
+H����O؝]ۏ��]���B���[��[ۈ��T�Xݓ[��
+H�\�[�]H��[Y[���][[Y[��RY
+	ܙX݋[[��Z[�]	�NY�
+[�]
+H[�]��[X�
+
+N�]�Y�]܋��\��\��ܚ]U^
+[�]��[YJK�[��[��[ۊ
+H�\�
+	�[����YYI�NJK��]�
+�[��[ۊ
+H��[Y[��^X���[X[�
+	���I�N�\�
+	�[����YYI�NJNB�B����8� 8� �P�RU�HS�H8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� ��[��[ۈ�X�ԙX�Z]�S[�J
+H�\�\�[\�H�]�T��X\��\�[\��[��˛��][ۋ��X\��
+NY�
+\�[\˙�]
+	�[�I�HOOH	ܙX�Z]�I�	��\�[\˙�]
+	�Y	�JH�X�Z]�S[�HH�YN��[Y[����K��\��\��Y
+	ܙX�Z]�K[[�I�N�\�\ےYH\�[\˙�]
+	�Y	�N��[Y[���][[Y[��RY
+	�\�^K[�[Y\���K�^�۝[�H	ӛˈ	�
+�\ےY�Y�X�Z]�Q]J\ےY
+N�]\���YNB��]\���[�NB���[��[ۈ�Y�X�Z]�Q]J\ےY
+H�\�\�H�]\��ܚ\\�
+
+NY�
+]\�
+H��[Y[���][[Y[��RY
+	ܙX݋[�Y[���K��[K�\�^HH	ۛۙI���[Y[���][[Y[��RY
+	ܙX݋Y\��܉�K��[K�\�^HH	؛������[Y[���][[Y[��RY
+	ܙX݋Y\��܉�K�^�۝[�H	ИX��[����ۙ�Y�\�Y�\��H�[�\���]\H\��ܚ\T����]\��B��]�
+\�
+�	��YI�
+�[���UT�P��\ۙ[�
+\ےY
+JB��[��[��[ۊ�H��]\������ۊ
+N�JB��[��[��[ۊ�\�H��[Y[���][[Y[��RY
+	ܙX݋[�Y[���K��[K�\�^HH	ۛۙI�Y�
+�\˙\��܊H��[Y[���][[Y[��RY
+	ܙX݋Y\��܉�K��[K�\�^HH	؛������[Y[���][[Y[��RY
+	ܙX݋Y\��܉�K�^�۝[�H	�\��܎�	�
+��\˙\��܎�]\��B��X�Z]�Q]HH�\˙]N�[]T�X�Z]�U�Y]��\˙]JN��[Y[���][[Y[��RY
+	ܙX݋X�۝[�	�K��[K�\�^HH	؛����JB���]�
+�[��[ۊ\��H��[Y[���][[Y[��RY
+	ܙX݋[�Y[���K��[K�\�^HH	ۛۙI���[Y[���][[Y[��RY
+	ܙX݋Y\��܉�K��[K�\�^HH	؛������[Y[���][[Y[��RY
+	ܙX݋Y\��܉�K�^�۝[�H	���[���Y�\[����K��X��[�\��ۛ�X�[ۋ��JNB���[��[ۈ�[]T�X�Z]�U�Y]�
+H��[Y[���][[Y[��RY
+	ܝ�[ܚY�[�XY��K�^�۝[�H�ܚY�[�Y�\��	�I���[Y[���][[Y[��RY
+	ܝ�\�[�\��K�^�۝[�H��[�\�	�I���[Y[���][[Y[��RY
+	ܝ�\�[�\�\ۙI�K�^�۝[�H��[�\�ۙH	�I���[Y[���][[Y[��RY
+	ܝ�Y\�XY��K�^�۝[�H�\�Y�\��	�I���[Y[���][[Y[��RY
+	ܝ�\�X�Z]�\��K�^�۝[�H��X�Z]�\�	�I���[Y[���][[Y[��RY
+	ܝ�\�X�Z]�\�\ۙI�K�^�۝[�H��X�Z]�\�ۙH	�I���[Y[���][[Y[��RY
+	ܝ�Y\K]\I�K�^�۝[�H�\U\H	�I���[Y[���][[Y[��RY
+	ܝ�Y\KX��[�	�K�^�۝[�H�\P��[�	�I���[Y[���][[Y[��RY
+	ܝ�Y\K\�\�X[	�K�^�۝[�H�\T�\�X[	�I���[Y[���][[Y[��RY
+	ܝ�Y\KXX��\��ܚY\��K�^�۝[�H�\PX��\��ܚY\�	�I����]�X�H�]\��Y�B��\��]\�[H��[Y[���][[Y[��RY
+	ܝ�Y\K\�]\��NY�
+�]�X�T�]\�	���]�X�T�]\�OOH	�I�H�\���ܜ�H�	����	Έ	�̌��MYI�	�\�]Z[�Έ	�ٍNYL��	��܉Έ	��N
+L��I�N�]\�[�[��\�SH	��[��\��H��X݋\�]\�X�Y�H��[OH��X��ܛ�[���
+
+��ܜ���]�X�T�]\�H	��	�H
+�	ȏ��
+��]�X�T�]\�
+�	���[���H[�H�]\�[�^�۝[�H	�I�B����[Y[���][[Y[��RY
+	ܝ�X��\�Y\��K�^�۝[�H���\�Y\���\[�H	�I���[Y[���][[Y[��RY
+	ܝ�X�\��Y\��K�^�۝[�H��\��Y\��[YH	�I���[Y[���][[Y[��RY
+	ܝ�\X��\Y	�K�^�۝[�H�X��\]][YH	�I�����\��Y\��Yۘ]\�H[XY�B��\��Y�[Y�H��[Y[���][[Y[��RY
+	ܝ�X�\��Y\�\�Y��NY�
+��\��Y\��Yۘ]\�H	����\��Y\��Yۘ]\�K��\���]
+	�]N��JH�Y�[Y˜ܘ�H��\��Y\��Yۘ]\�NH[�H�Y�[Y˜�[K�\�^HH	ۛۙI�B����]]�Y�[[]�\�H]][YB��\����H�]�]J
+N�\�[HH��[����˙�][۝
+
+H
+�JK�Y�\�
+�	�	�N�\�H��[����˙�]]J
+JK�Y�\�
+�	�	�N�\�^^^HH��˙�]�[YX\�
+N�\�H��˙�]�\��
+N�\�Z[�H��[����˙�]Z[�]\�
+JK�Y�\�
+�	�	�N�\�[\HH�HL��	�I��	�SI�H	HL�L���[Y[���][[Y[��RY
+	ܝ�\�X݋Y]][YI�K��[YHH[H
+�	���
+�
+�	���
+�^^^H
+�	�	�
+���[��
+K�Y�\�
+�	�	�H
+�	Ή�
+�Z[�
+�	�	�
+�[\N���[�]�Yۘ]\�H�[��\��܈�X�Z]�\��[�]�[��\�	��Y�\�X݋X�ۙ�\�I�N���Y�[�XYH�ۙ�\�YY����[��\�[�YH�ܛB�Y�
+�[]�\�P�ۙ�\�YY
+H��[Y[���][[Y[��RY
+	ܙX݋X�ۙ�\�YYX�[��\��K��[K�\�^HH	؛������[Y[���][[Y[��RY
+	ܙX݋Y�ܛK\�X�[ۉ�K��[K�\�^HH	ۛۙI�B�B���[��[ۈ�ۙ�\�Q[]�\�J
+H�\��[YHH��[Y[���][[Y[��RY
+	ܝ�\�X݋[�[YI�K��[YK��[J
+NY�
+[�[YJH��\�
+	�X\�H[�\�[�\��[�[YI��YJN��]\���B�Y�
+\��[��\�[\J	��Y�\�X݋X�ۙ�\�I�JH��\�
+	�X\�H�Yۈ��ۙ�\�H[]�\�I��YJN��]\���B���\�\�H�]\��ܚ\\�
+
+N�\��Y�]HH��[Y[���][[Y[��RY
+	��Y�\�X݋X�ۙ�\�I�K��]UT�
+	�[XY�K����N�\�^[�YHX�[ێ�	��ۙ�\�W�[]�\�I��\ێ��X�Z]�Q]K�\ۋ��Xݓ�[YN��[YK��Xݑ]][YN���[Y[���][[Y[��RY
+	ܝ�\�X݋Y]][YI�K��[YK��Xݔ�Yۘ]\�N��Y�]B�N��\�
+	��ۙ�\�Z[��[]�\�K����N�]�
+\�Y]��	���	��[�N�	ۛ�X�ܜ���XY\�Έ�	��۝[�U\IΈ	�^�Z[��K���N���Ӌ���[��Y�J^[�Y
+B�JK�[��[��[ۊ
+H��[Y[���][[Y[��RY
+	ܙX݋X�ۙ�\�YYX�[��\��K��[K�\�^HH	؛������[Y[���][[Y[��RY
+	ܙX݋X�ۙ�\�YYX�[��\��K�[��\�SH	Ɉ�L
+�[]�\�H�ۙ�\�YYH[��[�K���\�
+	�[]�\�H�ۙ�\�YYI�NJK��]�
+�[��[ۊ\��H�\�
+	�\��܈�ۙ�\�Z[�Έ	�
+�\���Y\��Y�K�YJNJNB���[��[ۈ�Z[�X�Z]�T�
+HY�
+\�X�Z]�Q]JH�]\���[�\�H�X�Z]�Q]N�\����H�[��˚��������\���H�]�����ܚY[�][ێ�	�ܝ�Z]	�[�]�	�[I��ܛX]�	�M	�JN�\��H�LHHNHHN�\��۝[��H�HH
+����[��[ۈ�
+��[^JH�˜�]�۝�^�J
+ˍJN��˜�]�۝
+	�[�]X�I�	؛�	�N��˜�]^��܊L�L�L�
+N�˝^
+���\\��\�J
+K^JN�˜�]�۝�^�JL
+N��˜�]�۝
+	�[�]X�I�	ۛܛX[	�N��˜�]^��܊������N�˝^
+�[	�I�^H
+�
+JNB��[��[ۈ�X�^JHY�
+^H��
+H��˘YY�J
+N�^HHN�B��˜�]�[��܊����
+
+�N��˜�X�
+K^K�۝[��
+�	щ�N�˜�]�۝�^�J
+N��˜�]�۝
+	�[�]X�I�	؛�	�N��˜�]^��܊�MK�MK�MJN�˝^
+��\\��\�J
+KH
+�
+^H
+�
+N�]\��^H
+�LB����XY\���˜�]�[��܊����
+
+�N��˜�X�
+���	щ�N�˜�]�۝�^�JM
+N��˜�]�۝
+	�[�]X�I�	؛�	�N��˜�]^��܊�MK�MK�MJN�˝^
+	ВS�Q�ԐI�KL�N�˜�]�۝�^�JJN��˜�]�۝
+	�[�]X�I�	ۛܛX[	�N��˜�]^��܊NN�
+N�˝^
+	�\]Z\Y[��\[����I�KN
+N�˜�]�[��܊�̋�
+N
+N��˜��[�Y�X�
+�M��
+
+
+M��	щ�N�˜�]�۝�^�JJN��˜�]�۝
+	�[�]X�I�	؛�	�N��˜�]^��܊�MK�MK�MJN�˝^
+�\ۋ�MNL
+N�˜�]�۝�^�J
+N��˜�]�۝
+	�[�]X�I�	ۛܛX[	�N�˝^
+�]K�MNMJNHH��HH�X�	��\[��ܚY�[��JN�
+	�X��\Y�\����ܚY�[�Y�\��KJN�H
+�HL��
+	��[�\����[�\�KJN��
+	�ۙI���[�\�ۙKJ�MKJN�H
+�HM�HH�X�	�\�[�][ۉ�JN�
+	�[]�\�HY�\����\�Y�\��KJN�H
+�HL��
+	ԙX�Z]�\����X�Z]�\�KJN��
+	�ۙI���X�Z]�\�ۙKJ�MKJN�H
+�HM�HH�X�	�\]Z\Y[�]Z[��JN�
+	�\]Z\Y[�\I��\U\KKJN��
+	М�[��[�[	��\P��[�J͌JN�H
+�HL��
+	��\�X[�ˉ��\T�\�X[KJN��
+	�X��\��ܚY\���\PX��\��ܚY\�J͌JN�H
+�HL��
+	�]�X�H�]\���]�X�T�]\�KJN�H
+�HM�HH�X�	���\�Y\�[��ܛX][ۉ�JN�
+	���\�Y\���\[�I����\�Y\���\[�KKJN��
+	��\��Y\��[YI���\��Y\��[YKJ�LJN�H
+�HM�Y�
+H��L
+H��˘YY�J
+N�HHN�B�HH�X�	�X��\�ۙ�\�X][ۉ�JN�
+	��\��Y\����\��Y\��[YKKJN��
+	�X��\	��X��\]][YKJ�MKJN�H
+�HL�Y�
+��\��Y\��Yۘ]\�H	����\��Y\��Yۘ]\�K��\���]
+	�]N��JH�H��˘Y[XY�J��\��Y\��Yۘ]\�K	����KK�JN�H�]�
+JH�B�B��˜�]�]���܊���
+N��˜�X�
+KK�JN�˜�]�۝�^�J
+ˍJN��˜�]�۝
+	�[�]X�I�	ۛܛX[	�N��˜�]^��܊MLMLML
+N�˝^
+	��\��Y\��Yۘ]\�I�KH
+��
+N�H
+�H��Y�
+H
+�
+L���JH��˘YY�J
+N�HHN�B�HH�X�	�[]�\�H�ۙ�\�X][ۉ�JN�\���[YHH��[Y[���][[Y[��RY
+	ܝ�\�X݋[�[YI�K��[YH��Xݓ�[YH	�I��\��H��[Y[���][[Y[��RY
+	ܝ�\�X݋Y]][YI�K��[YH��Xݑ]][YH	�I��
+	ԙX�Z]�\��[�[YI���[YKKJN�
+	�]H	�[YHو[]�\�I��J�MKJN�H
+�HL��Y�
+Z\��[��\�[\J	��Y�\�X݋X�ۙ�\�I�JH�\���Y�H��[Y[���][[Y[��RY
+	��Y�\�X݋X�ۙ�\�I�K��]UT�
+	�[XY�K����N�˘Y[XY�J��Y�	����KK�JN�˜�]�]���܊���
+N��˜�X�
+KK�JN�˜�]�۝�^�J
+ˍJN��˜�]�۝
+	�[�]X�I�	ۛܛX[	�N��˜�]^��܊MLMLML
+N�˝^
+	ԙX�Z]�\��Yۘ]\�I�KH
+��
+NH[�H�˜�]�]���܊���
+N��˜�X�
+KK�JN�˜�]�۝�^�J
+N��˜�]�۝
+	�[�]X�I�	�][X��N��˜�]^��܊NNN
+N�˝^
+	��Yۘ]\�H[�[���J�J�L�NB���\����\�HHX]�X^
+H
+���
+NY�
+���\�H��L
+H���\�HH�L�˜�]�۝�^�J
+�N��˜�]�۝
+	�[�]X�I�	ۛܛX[	�N��˜�]^��܊NNN
+N�˝^
+	��[�\�]Y�H�[�Y�ܘH	�
+��]�]J
+K����[T��[��	�[�UT��KK���\�JN�]\����B����8� 8� U�S�T�S�T��8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� 8� ���[Y[��Y]�[�\�[�\�	��P�۝[��YY	��[��[ۊ
+H���Y\��ܚ\T����H��[�ܘY�B�T���ԒT�T�H�Y�Q�]
+	�\���ܚ\�\�	�H	������X��Y��IܙH[��X�Z]�H[�B�Y�
+�X�ԙX�Z]�S[�J
+JH���X�Z]�H[�N��\�H\�ۙ�\�H
+���]ۜ��[Y[���][[Y[��RY
+	؝�X�ۙ�\�KY[]�\�I�K�Y]�[�\�[�\�	��X����ۙ�\�Q[]�\�JN��[Y[���][[Y[��RY
+	؝�\�X݋\��K�Y]�[�\�[�\�	��X����[��[ۊ
+H�\��H�Z[�X�Z]�T�
+NY�
+�H���]�J	��\[�ӛ�KI�
+��X�Z]�Q]K�\ۈ
+�	˜��NJN��[Y[���][[Y[��RY
+	��X\�\�X݋X�ۙ�\�I�K�Y]�[�\�[�\�	��X����[��[ۊ
+H��X\��[��\�	��Y�\�X݋X�ۙ�\�I�N�JN���ۙ�Y�[�[
+�X�Z]�\�ZY��YY��]\��ܚ\T�
+B���[Y[���][[Y[��RY
+	��ۙ�Y�X���K�Y]�[�\�[�\�	��X����[�[�[
+N��[Y[���][[Y[��RY
+	؝�X�[��[[[�[	�K�Y]�[�\�[�\�	��X������S[�[
+N��[Y[���][[Y[��RY
+	؝�\�]�KX�ۙ�Y��K�Y]�[�\�[�\�	��X����]�P�ۙ�Y�N�]\�������\�ܛX[\[�]�B��[�]\
+
+N����]�Y�][ۈ�]ۜ��[Y[���][[Y[��RY
+	؝�[�^L	�K�Y]�[�\�[�\�	��X����[��[ۊ
+H��^
+
+N�JN��[Y[���][[Y[��RY
+	؝�[�^LI�K�Y]�[�\�[�\�	��X����[��[ۊ
+H��^
+JN�JN��[Y[���][[Y[��RY
+	؝�[�^L��K�Y]�[�\�[�\�	��X����[��[ۊ
+H��^
+�N�JN��[Y[���][[Y[��RY
+	؝�[�^L��K�Y]�[�\�[�\�	��X����[��[ۊ
+H��^
+�N�JN��[Y[���][[Y[��RY
+	؝�\�]�LI�K�Y]�[�\�[�\�	��X����[��[ۊ
+H��]�JN�JN��[Y[���][[Y[��RY
+	؝�\�]�L��K�Y]�[�\�[�\�	��X����[��[ۊ
+H��]��N�JN��[Y[���][[Y[��RY
+	؝�\�]�L��K�Y]�[�\�[�\�	��X����[��[ۊ
+H��]��N�JN��[Y[���][[Y[��RY
+	؝�\�]�M	�K�Y]�[�\�[�\�	��X����[��[ۊ
+H��]�
+N�JN���X�[ۈ�]ۜ��[Y[���][[Y[��RY
+	؝�Y�ۛ�Y	�K�Y]�[�\�[�\�	��X����ۛ�Y�N��[Y[���][[Y[��RY
+	؝�\�[�	�K�Y]�[�\�[�\�	��X����ۛ�Y[��[�
+N��[Y[���][[Y[��RY
+	؝�[�]��K�Y]�[�\�[�\�	��X����\�]�ܛJN����Yۘ]\�H�X\��]ۜ��[Y[���][[Y[��RY
+	��X\�X�\��Y\��K�Y]�[�\�[�\�	��X����[��[ۊ
+H��X\��[��\�	��Y�X�\��Y\��N�JN��[Y[���][[Y[��RY
+	��X\�\�X�Z]�\��K�Y]�[�\�[�\�	��X����[��[ۊ
+H��X\��[��\�	��Y�\�X�Z]�\��N�JN���[]�\�H���B���[Y[���][[Y[��RY
+	�[]�\�K]���I�K�Y]�[�\�[�\�	��X������Q[]�\�JN����ۙ�Y�[�[���[Y[���][[Y[��RY
+	��ۙ�Y�X���K�Y]�[�\�[�\�	��X����[�[�[
+N��[Y[���][[Y[��RY
+	؝�X�[��[[[�[	�K�Y]�[�\�[�\�	��X������S[�[
+N��[Y[���][[Y[��RY
+	؝�\�]�KX�ۙ�Y��K�Y]�[�\�[�\�	��X����]�P�ۙ�Y�NJN��ܚ\��؛�O���[
