@@ -286,7 +286,7 @@
 // ── CONFIG ──────────────────────────────────────────────────────
 var RECIPIENT = 'office' + '@' + 'binagora.com';
 var estadoDispositivo = '';
-var APPS_SCRIPT_URL = '';
+var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxkTojBWMAXmeffW3zvlNB-SVAqAXr4XTp1HCC5RUWI_Exl9Lved9eHPpo1f3WYlJz92A/exec';
 
 function safeGet(k) { try { return localStorage.getItem(k) || ''; } catch(e) { return ''; } }
 function safeSet(k, v) { try { localStorage.setItem(k, v); } catch(e) {} }
@@ -316,7 +316,8 @@ function initApp() {
   if (elFecha) elFecha.value = dateStr;
   if (elTime) elTime.value = timeStr;
 
-  APPS_SCRIPT_URL = safeGet('apps_script_url');
+  var savedUrl = safeGet('apps_script_url');
+  if (savedUrl) APPS_SCRIPT_URL = savedUrl;
   var savedRecipient = safeGet('recipient_email');
   if (savedRecipient) RECIPIENT = savedRecipient;
   document.getElementById('cfg-apps-url').value = APPS_SCRIPT_URL;
