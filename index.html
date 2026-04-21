@@ -98,25 +98,27 @@
 </head>
 <body>
 
+<!-- Success Overlay with receiver link -->
 <div class="success-overlay" id="success-overlay">
   <div class="success-card">
-    <div class="success-icon">✅</div>
+    <div class="success-icon" style="color:#22c55e;font-size:56px;">&#10004;</div>
     <div class="success-title">Done!</div>
     <div class="success-sub" id="success-msg">PDF downloaded and sent</div>
     <div id="receiver-link-box" style="display:none;margin:16px 0;padding:12px;background:#f5f4f0;border-radius:8px;">
       <div style="font-size:12px;color:#888;margin-bottom:6px;">Receiver link (share with recipient):</div>
       <div style="display:flex;gap:8px;align-items:center;">
-        <input type="text" id="receiver-link" readonly style="flex:1;padding:8px;border:1.5px solid #d8d5cc;border-radius:6px;font-size:12px;font-family:'DM Mono',monospace;">
-        <button onclick="copyReceiverLink()" style="padding:8px 16px;background:#1a1a2e;color:white;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;">Copy</button>
+        <input type="text" id="receiver-link" readonly style="flex:1;padding:8px;border:1.5px solid #d8d5cc;border-radius:6px;font-size:11px;font-family:monospace;">
+        <button id="btn-copy-link" style="padding:8px 16px;background:#1a1a2e;color:white;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;">Copy</button>
       </div>
     </div>
     <button class="btn-new" id="btn-new">+ New Shipping Note</button>
   </div>
 </div>
 
+<!-- Settings Modal - Apps Script (NOT EmailJS) -->
 <div class="modal-overlay" id="config-modal">
   <div class="modal">
-    <h2>⚙ Settings</h2>
+    <h2>Settings</h2>
     <div class="instructions">
       <strong>Google Apps Script Setup:</strong><br>
       1. Go to <a href="https://script.google.com" target="_blank">script.google.com</a> → New project<br>
@@ -138,7 +140,6 @@
 
 <div class="header">
   <div class="header-left">
-
     <div class="doc-title">Equipment Shipping Note</div>
   </div>
   <div class="numero-remito" id="display-numero">No. ESN-0001</div>
@@ -267,39 +268,37 @@
       </div>
     </div>
 
-    <div class="email-status nok" id="email-status-msg">⚠ Not configured — click ⚙️ to set up</div>
+    <div class="email-status nok" id="email-status-msg">⚠ Email not configured — click ⚙️ to set up</div>
     <div class="nav">
       <button class="btn btn-secondary" id="btn-prev-4">← Back</button>
       <div class="btn-row">
         <button class="btn btn-pdf" id="btn-download">⬇ Download PDF</button>
-        <button class="btn btn-email" id="btn-send">📧 Send & Share</button>
+        <button class="btn btn-email" id="btn-send">📧 Send & Download</button>
       </div>
     </div>
   </div>
 
 </div>
 
-<button class="config-btn" id="config-btn" title="Settings">⚙️</button>
+<button class="config-btn" id="config-btn" title="Settings">&#9881;&#65039;</button>
 <div class="toast" id="toast"></div>
 
 <script>
-// ── CONFIG ──────────────────────────────────────────────────────
-var RECIPIENT = 'office' + '@' + 'binagora.com';
-var estadoDispositivo = '';
+// ── CONFIG ──
 var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxkTojBWMAXmeffW3zvlNB-SVAqAXr4XTp1HCC5RUWI_Exl9Lved9eHPpo1f3WYlJz92A/exec';
+var RECIPIENT = 'office@binagora.com';
+var estadoDispositivo = '';
 
 function safeGet(k) { try { return localStorage.getItem(k) || ''; } catch(e) { return ''; } }
 function safeSet(k, v) { try { localStorage.setItem(k, v); } catch(e) {} }
 
-// ── INIT ────────────────────────────────────────────────────────
+// ── INIT ──
 function initApp() {
   var n = 1;
   try { n = parseInt(localStorage.getItem('bin_esn') || '0') + 1; localStorage.setItem('bin_esn', n); } catch(e) {}
   var num = 'ESN-' + String(n).padStart(4, '0');
-  var elNum = document.getElementById('numero');
-  var elDisp = document.getElementById('display-numero');
-  if (elNum) elNum.value = num;
-  if (elDisp) elDisp.textContent = 'No. ' + num;
+  document.getElementById('numero').value = num;
+  document.getElementById('display-numero').textContent = 'No. ' + num;
 
   var now = new Date();
   var mm = String(now.getMonth() + 1).padStart(2, '0');
@@ -309,13 +308,10 @@ function initApp() {
   var min = String(now.getMinutes()).padStart(2, '0');
   var ampm = hh >= 12 ? 'PM' : 'AM';
   hh = hh % 12 || 12;
-  var dateStr = mm + '/' + dd + '/' + yyyy;
-  var timeStr = mm + '/' + dd + '/' + yyyy + ', ' + String(hh).padStart(2,'0') + ':' + min + ' ' + ampm;
-  var elFecha = document.getElementById('fecha');
-  var elTime = document.getElementById('firma-datetime');
-  if (elFecha) elFecha.value = dateStr;
-  if (elTime) elTime.value = timeStr;
+  document.getElementById('fecha').value = mm + '/' + dd + '/' + yyyy;
+  document.getElementById('firma-datetime').value = mm + '/' + dd + '/' + yyyy + ', ' + String(hh).padStart(2,'0') + ':' + min + ' ' + ampm;
 
+  // Load saved config (only override defaults if localStorage has values)
   var savedUrl = safeGet('apps_script_url');
   if (savedUrl) APPS_SCRIPT_URL = savedUrl;
   var savedRecipient = safeGet('recipient_email');
@@ -326,28 +322,25 @@ function initApp() {
 
   initCanvas('sig-carrier');
   initCanvas('sig-receiver');
-
-  checkReceiveMode();
 }
 
-// ── EMAIL STATUS ────────────────────────────────────────────────
 function updateEmailStatus() {
   var el = document.getElementById('email-status-msg');
   if (APPS_SCRIPT_URL) {
     el.className = 'email-status ok';
-    el.textContent = '\u2713 Email ready \u2014 will send to ' + RECIPIENT;
+    el.textContent = 'Email ready - will send to ' + RECIPIENT;
   } else {
     el.className = 'email-status nok';
-    el.textContent = '\u26A0 Not configured \u2014 click \u2699\uFE0F to set up';
+    el.textContent = 'Not configured - click the gear icon to set up';
   }
 }
 
-// ── NAVIGATION ──────────────────────────────────────────────────
+// ── NAVIGATION ──
 function goTo(n) {
   var panels = document.querySelectorAll('.panel');
-  var steps  = document.querySelectorAll('.step');
+  var steps = document.querySelectorAll('.step');
   for (var i = 0; i < panels.length; i++) panels[i].classList.remove('active');
-  for (var i = 0; i < steps.length; i++)  steps[i].classList.remove('active');
+  for (var i = 0; i < steps.length; i++) steps[i].classList.remove('active');
   document.getElementById('panel-' + n).classList.add('active');
   steps[n].classList.add('active');
   window.scrollTo(0, 0);
@@ -355,7 +348,7 @@ function goTo(n) {
 function next(n) { if (!validatePanel(n)) return; goTo(n + 1); document.querySelectorAll('.step')[n].classList.add('done'); }
 function prev(n) { goTo(n - 1); }
 
-// ── VALIDATION ──────────────────────────────────────────────────
+// ── VALIDATION ──
 function validatePanel(n) {
   var req = {
     0: ['origen-dir','origen-empresa'],
@@ -378,63 +371,62 @@ function validatePanel(n) {
   return ok;
 }
 
-// ── DEVICE STATUS ───────────────────────────────────────────────
+// ── DEVICE STATUS ──
 function setEstado(val) {
   estadoDispositivo = val;
-  document.getElementById('btn-good').className    = 'estado-btn';
+  document.getElementById('btn-good').className = 'estado-btn';
   document.getElementById('btn-details').className = 'estado-btn';
-  document.getElementById('btn-poor').className    = 'estado-btn';
-  if (val === 'Good')        document.getElementById('btn-good').className    = 'estado-btn sel-good';
+  document.getElementById('btn-poor').className = 'estado-btn';
+  if (val === 'Good') document.getElementById('btn-good').className = 'estado-btn sel-good';
   if (val === 'Has Details') document.getElementById('btn-details').className = 'estado-btn sel-details';
-  if (val === 'Poor')        document.getElementById('btn-poor').className    = 'estado-btn sel-poor';
+  if (val === 'Poor') document.getElementById('btn-poor').className = 'estado-btn sel-poor';
 }
 
-// ── OPTIONAL DELIVERY ───────────────────────────────────────────
+// ── OPTIONAL DELIVERY ──
 function toggleDelivery() {
   document.getElementById('delivery-toggle').classList.toggle('open');
   document.getElementById('delivery-section').classList.toggle('open');
 }
 
-// ── CANVAS ──────────────────────────────────────────────────────
+// ── CANVAS ──
 function initCanvas(id) {
   var c = document.getElementById(id);
+  if (!c) return;
   var ctx = c.getContext('2d');
   ctx.strokeStyle = '#1a1a2e';
-  ctx.lineWidth   = 2.5;
-  ctx.lineCap     = 'round';
-  ctx.lineJoin    = 'round';
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
   var drawing = false, lx = 0, ly = 0;
-
   function getPos(e) {
-    var r  = c.getBoundingClientRect();
-    var sx = c.width  / r.width;
+    var r = c.getBoundingClientRect();
+    var sx = c.width / r.width;
     var sy = c.height / r.height;
     if (e.touches) return [(e.touches[0].clientX - r.left) * sx, (e.touches[0].clientY - r.top) * sy];
     return [(e.clientX - r.left) * sx, (e.clientY - r.top) * sy];
   }
   function draw(x, y) { ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(x, y); ctx.stroke(); lx = x; ly = y; }
-
-  c.addEventListener('mousedown',  function(e) { drawing = true;  var p = getPos(e); lx = p[0]; ly = p[1]; });
-  c.addEventListener('mousemove',  function(e) { if (!drawing) return; var p = getPos(e); draw(p[0], p[1]); });
-  c.addEventListener('mouseup',    function()  { drawing = false; });
-  c.addEventListener('mouseleave', function()  { drawing = false; });
-  c.addEventListener('touchstart', function(e) { e.preventDefault(); drawing = true;  var p = getPos(e); lx = p[0]; ly = p[1]; }, { passive: false });
-  c.addEventListener('touchmove',  function(e) { e.preventDefault(); if (!drawing) return; var p = getPos(e); draw(p[0], p[1]); }, { passive: false });
-  c.addEventListener('touchend',   function()  { drawing = false; });
+  c.addEventListener('mousedown', function(e) { drawing = true; var p = getPos(e); lx = p[0]; ly = p[1]; });
+  c.addEventListener('mousemove', function(e) { if (!drawing) return; var p = getPos(e); draw(p[0], p[1]); });
+  c.addEventListener('mouseup', function() { drawing = false; });
+  c.addEventListener('mouseleave', function() { drawing = false; });
+  c.addEventListener('touchstart', function(e) { e.preventDefault(); drawing = true; var p = getPos(e); lx = p[0]; ly = p[1]; }, { passive: false });
+  c.addEventListener('touchmove', function(e) { e.preventDefault(); if (!drawing) return; var p = getPos(e); draw(p[0], p[1]); }, { passive: false });
+  c.addEventListener('touchend', function() { drawing = false; });
 }
-
 function clearCanvas(id) {
   var c = document.getElementById(id);
-  c.getContext('2d').clearRect(0, 0, c.width, c.height);
+  if (c) c.getContext('2d').clearRect(0, 0, c.width, c.height);
 }
 function isCanvasEmpty(id) {
   var c = document.getElementById(id);
+  if (!c) return true;
   var data = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
   for (var i = 0; i < data.length; i++) { if (data[i] !== 0) return false; }
   return true;
 }
 
-// ── TOAST ───────────────────────────────────────────────────────
+// ── TOAST ──
 function toast(msg, err) {
   var t = document.getElementById('toast');
   t.textContent = msg;
@@ -442,7 +434,7 @@ function toast(msg, err) {
   setTimeout(function() { t.className = 'toast'; }, 3200);
 }
 
-// ── BUILD PDF ───────────────────────────────────────────────────
+// ── BUILD PDF ──
 function buildPDF() {
   var jsPDF = window.jspdf.jsPDF;
   var doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -453,7 +445,7 @@ function buildPDF() {
     doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(120,120,130);
     doc.text(lbl.toUpperCase(), x, yy);
     doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(26,26,26);
-    doc.text(val || '\u2014', x, yy + 5);
+    doc.text(val || '—', x, yy + 5);
   }
   function sec(t, yy) {
     doc.setFillColor(26,26,46); doc.rect(M, yy, W - M*2, 6, 'F');
@@ -464,7 +456,7 @@ function buildPDF() {
   function checkPage(needed) {
     if (y + needed > pageH - 15) {
       doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(180);
-      doc.text('Generated by Binagora \u00B7 ' + new Date().toLocaleString('en-US'), M, pageH - 10);
+      doc.text('Generated by Binagora', M, pageH - 10);
       doc.addPage();
       y = M;
     }
@@ -472,7 +464,6 @@ function buildPDF() {
 
   // Header
   doc.setFillColor(26,26,46); doc.rect(0,0,W,22,'F');
-  doc.setFontSize(14); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
   doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(180,180,200);
   doc.text('Equipment Shipping Note', M, 18);
   doc.setFillColor(232,83,58); doc.rect(W-62,4,44,14,'F');
@@ -482,81 +473,59 @@ function buildPDF() {
   doc.text(document.getElementById('fecha').value, W-61, 15);
   y = 30;
 
-  // Origin
   y = sec('Shipping Origin', y);
-  fld('Pickup Address', document.getElementById('origen-dir').value, M, y);
-  y += 10;
+  fld('Pickup Address', document.getElementById('origen-dir').value, M, y); y += 10;
   fld('Sender', document.getElementById('origen-empresa').value, M, y);
-  fld('Phone',  document.getElementById('origen-tel').value, M + 100, y);
-  y += 14;
+  fld('Phone', document.getElementById('origen-tel').value, M + 100, y); y += 14;
 
-  // Destination
   checkPage(24);
   y = sec('Destination', y);
-  fld('Delivery Address', document.getElementById('dest-dir').value, M, y);
-  y += 10;
+  fld('Delivery Address', document.getElementById('dest-dir').value, M, y); y += 10;
   fld('Receiver', document.getElementById('dest-empresa').value, M, y);
-  fld('Phone',    document.getElementById('dest-tel').value, M + 100, y);
-  y += 14;
+  fld('Phone', document.getElementById('dest-tel').value, M + 100, y); y += 14;
 
-  // Equipment
   checkPage(50);
   y = sec('Equipment Details', y);
-  fld('Equipment Type', document.getElementById('eq-tipo').value,  M,      y);
-  fld('Brand / Model',  document.getElementById('eq-marca').value, M + 50, y);
-  fld('Serial No.',     document.getElementById('eq-serie').value, M + 120,y);
-  y += 12;
-  fld('Included Accessories', document.getElementById('eq-accesorios').value, M, y);
-  y += 10;
-
+  fld('Equipment Type', document.getElementById('eq-tipo').value, M, y);
+  fld('Brand / Model', document.getElementById('eq-marca').value, M + 50, y);
+  fld('Serial No.', document.getElementById('eq-serie').value, M + 120, y); y += 12;
+  fld('Included Accessories', document.getElementById('eq-accesorios').value, M, y); y += 10;
   doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(120,120,130);
   doc.text('DEVICE STATUS', M, y);
   var sc = estadoDispositivo === 'Good' ? [34,197,94] : estadoDispositivo === 'Has Details' ? [245,158,11] : [232,83,58];
   doc.setFillColor(sc[0],sc[1],sc[2]); doc.roundedRect(M, y+2, 50, 7, 1.5, 1.5, 'F');
   doc.setFontSize(8.5); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
-  doc.text(estadoDispositivo || '\u2014', M+3, y+7);
-  y += 14;
-
+  doc.text(estadoDispositivo || '—', M+3, y+7); y += 14;
   var obs = document.getElementById('eq-obs').value;
   if (obs) { fld('Condition Notes', obs, M, y); y += 12; }
 
-  // Courier
   checkPage(30);
   y = sec('Courier Information', y);
-  fld('Courier Company', document.getElementById('cour-empresa').value, M,      y);
-  fld('Carrier Name',    document.getElementById('cour-nombre').value,  M + 60, y);
-  y += 12;
-  fld('ID / Document',  document.getElementById('cour-dni').value,     M,       y);
-  fld('Phone',          document.getElementById('cour-tel').value,     M + 65,  y);
-  fld('License Plate',  document.getElementById('cour-patente').value, M + 125, y);
-  y += 14;
+  fld('Courier Company', document.getElementById('cour-empresa').value, M, y);
+  fld('Carrier Name', document.getElementById('cour-nombre').value, M + 60, y); y += 12;
+  fld('ID / Document', document.getElementById('cour-dni').value, M, y);
+  fld('Phone', document.getElementById('cour-tel').value, M + 65, y);
+  fld('License Plate', document.getElementById('cour-patente').value, M + 125, y); y += 14;
 
-  // Pickup Confirmation
   checkPage(55);
   y = sec('Pickup Confirmation', y);
   doc.setFontSize(8); doc.setFont('helvetica','italic'); doc.setTextColor(100,100,110);
-  doc.text('I hereby confirm receipt of the equipment detailed in this document for transport.', M, y);
-  y += 8;
-  fld('Full Name',           document.getElementById('firma-nombre').value,   M,       y);
-  fld('Date & Time of Pickup', document.getElementById('firma-datetime').value, M + 100, y);
-  y += 12;
+  doc.text('I hereby confirm receipt of the equipment detailed in this document for transport.', M, y); y += 8;
+  fld('Full Name', document.getElementById('firma-nombre').value, M, y);
+  fld('Date & Time of Pickup', document.getElementById('firma-datetime').value, M + 100, y); y += 12;
   if (!isCanvasEmpty('sig-carrier')) {
     var cSig = document.getElementById('sig-carrier').toDataURL('image/png');
     doc.addImage(cSig, 'PNG', M, y, 80, 25);
   }
   doc.setDrawColor(200,200,200); doc.rect(M, y, 80, 25);
   doc.setFontSize(7.5); doc.setFont('helvetica','normal'); doc.setTextColor(150);
-  doc.text('Carrier Signature', M, y+28);
-  y += 34;
+  doc.text('Carrier Signature', M, y+28); y += 34;
 
-  // Delivery Confirmation - ADD NEW PAGE IF NEEDED
+  // DELIVERY CONFIRMATION - smart page break
   checkPage(55);
   y = sec('Delivery Confirmation', y);
-  var recvName = document.getElementById('recv-nombre').value;
-  var recvTime = document.getElementById('recv-datetime').value;
-  fld('Receiver Full Name',       recvName || '\u2014', M,       y);
-  fld('Date & Time of Delivery',  recvTime || '\u2014', M + 100, y);
-  y += 12;
+  fld('Receiver Full Name', document.getElementById('recv-nombre').value || '—', M, y);
+  fld('Date & Time of Delivery', document.getElementById('recv-datetime').value || '—', M + 100, y); y += 12;
   if (!isCanvasEmpty('sig-receiver')) {
     var rSig = document.getElementById('sig-receiver').toDataURL('image/png');
     doc.addImage(rSig, 'PNG', M, y, 80, 25);
@@ -571,21 +540,12 @@ function buildPDF() {
     doc.text('Receiver Signature', M, y+28);
   }
 
-  // Footer on current page
   doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(180);
-  doc.text('Generated by Binagora \u00B7 ' + new Date().toLocaleString('en-US'), M, pageH - 10);
+  doc.text('Generated by Binagora - ' + new Date().toLocaleString('en-US'), M, pageH - 10);
   return doc;
 }
 
-// ── DOWNLOAD ────────────────────────────────────────────────────
-function downloadPDF() {
-  if (!validatePanel(4)) return;
-  if (isCanvasEmpty('sig-carrier')) { toast('The carrier must sign first', true); return; }
-  buildPDF().save('ShippingNote-' + document.getElementById('numero').value + '.pdf');
-  toast('PDF downloaded \u2713');
-}
-
-// ── COLLECT FORM DATA ────────────────────────────────────────────
+// ── COLLECT FORM DATA ──
 function collectFormData() {
   return {
     esn: document.getElementById('numero').value,
@@ -612,19 +572,28 @@ function collectFormData() {
   };
 }
 
-// ── SEND EMAIL ──────────────────────────────────────────────────
+// ── DOWNLOAD PDF ONLY ──
+function downloadPDF() {
+  if (isCanvasEmpty('sig-carrier')) { toast('The carrier must sign first', true); return; }
+  buildPDF().save('ShippingNote-' + document.getElementById('numero').value + '.pdf');
+  toast('PDF downloaded');
+}
+
+// ── SEND EMAIL + DOWNLOAD ──
 function downloadAndSend() {
   if (!validatePanel(4)) return;
   if (isCanvasEmpty('sig-carrier')) { toast('The carrier must sign first', true); return; }
-  if (!APPS_SCRIPT_URL) { toast('Configure Apps Script URL first \u2014 click \u2699\uFE0F', true); return; }
+  if (!APPS_SCRIPT_URL) { toast('Configure Apps Script URL first - click the gear icon', true); return; }
 
-  var filename = 'ShippingNote-' + document.getElementById('numero').value + '.pdf';
+  toast('Saving and sending...');
+  var formData = collectFormData();
+  var filename = 'ShippingNote-' + formData.esn + '.pdf';
+
+  // Build PDF and get base64
   var doc = buildPDF();
   var pdfBase64 = doc.output('datauristring').split(',')[1];
-  doc.save(filename);
-  toast('Saving and sending email...');
 
-  var formData = collectFormData();
+  // Send to Apps Script FIRST, then download PDF
   var payload = {
     action: 'send_email',
     data: formData,
@@ -633,11 +602,11 @@ function downloadAndSend() {
     esn_date: formData.date,
     origin: formData.sender,
     destination: formData.receiver,
-    equipment: formData.eqType + ' \u2014 ' + formData.eqBrand,
+    equipment: formData.eqType + ' - ' + formData.eqBrand,
     serial: formData.eqSerial,
     carrier_name: formData.carrierName,
     courier_company: formData.courierCompany,
-    device_status: formData.deviceStatus || '\u2014',
+    device_status: formData.deviceStatus || '-',
     pdf_base64: pdfBase64,
     pdf_filename: filename
   };
@@ -648,7 +617,10 @@ function downloadAndSend() {
     headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify(payload)
   }).then(function() {
-    var esnId = document.getElementById('numero').value;
+    // Download PDF after fetch completes
+    doc.save(filename);
+    // Show success with receiver link
+    var esnId = formData.esn;
     var receiverUrl = window.location.origin + window.location.pathname + '?mode=receive&id=' + esnId;
     document.getElementById('success-msg').textContent = 'PDF downloaded and sent to ' + RECIPIENT;
     document.getElementById('receiver-link').value = receiverUrl;
@@ -656,19 +628,24 @@ function downloadAndSend() {
     document.getElementById('success-overlay').classList.add('show');
   }).catch(function(err) {
     console.error('Send error:', err);
-    toast('Error sending: ' + err.message, true);
+    toast('Error: ' + err.message, true);
   });
 }
 
-// ── COPY RECEIVER LINK ───────────────────────────────────────────
+// ── COPY RECEIVER LINK ──
 function copyReceiverLink() {
   var link = document.getElementById('receiver-link');
   link.select();
-  document.execCommand('copy');
-  toast('Link copied! \u2713');
+  link.setSelectionRange(0, 99999);
+  try {
+    navigator.clipboard.writeText(link.value);
+  } catch(e) {
+    document.execCommand('copy');
+  }
+  toast('Link copied!');
 }
 
-// ── CHECK RECEIVE MODE ───────────────────────────────────────────
+// ── RECEIVE MODE ──
 function checkReceiveMode() {
   var params = new URLSearchParams(window.location.search);
   if (params.get('mode') === 'receive' && params.get('id')) {
@@ -678,12 +655,11 @@ function checkReceiveMode() {
 
 function loadReceiveData(esnId) {
   if (!APPS_SCRIPT_URL) {
-    toast('Apps Script not configured. Cannot load data.', true);
+    toast('Configuration error', true);
     return;
   }
   toast('Loading shipping note...');
-  var url = APPS_SCRIPT_URL + '?id=' + encodeURIComponent(esnId);
-  fetch(url)
+  fetch(APPS_SCRIPT_URL + '?id=' + encodeURIComponent(esnId))
     .then(function(r) { return r.json(); })
     .then(function(resp) {
       if (resp.ok && resp.data) {
@@ -693,62 +669,65 @@ function loadReceiveData(esnId) {
       }
     })
     .catch(function(err) {
-      toast('Error loading data: ' + err.message, true);
+      toast('Error loading: ' + err.message, true);
     });
 }
 
 function populateReceiveView(data) {
+  // Hide all panels, show only panel 4
   var panels = document.querySelectorAll('.panel');
   for (var i = 0; i < panels.length; i++) panels[i].classList.remove('active');
-
   document.getElementById('panel-4').classList.add('active');
+
+  // Hide step tabs
   var steps = document.querySelectorAll('.step');
   for (var i = 0; i < steps.length; i++) steps[i].style.display = 'none';
 
+  // Set ESN display
   document.getElementById('display-numero').textContent = 'No. ' + data.esn;
   document.getElementById('numero').value = data.esn;
-  document.getElementById('fecha').value = data.date;
+  document.getElementById('fecha').value = data.date || '';
 
+  // Open delivery section
   document.getElementById('delivery-toggle').classList.add('open');
   document.getElementById('delivery-section').classList.add('open');
 
-  // Hide pickup section elements
+  // Hide pickup section elements in panel 4
   var panel4 = document.getElementById('panel-4');
-  var sectionTitles = panel4.querySelectorAll('.section-title');
-  if (sectionTitles[0]) sectionTitles[0].style.display = 'none';
-  var grids = panel4.querySelectorAll('.grid-2');
-  if (grids[0]) grids[0].style.display = 'none';
-  var firmaWrappers = panel4.querySelectorAll('.firma-wrapper');
-  if (firmaWrappers[0]) firmaWrappers[0].style.display = 'none';
-  var quote = panel4.querySelector('p[style*="italic"]');
-  if (quote) quote.style.display = 'none';
-  var deliveryToggle = document.getElementById('delivery-toggle');
-  if (deliveryToggle) deliveryToggle.style.display = 'none';
+  var allChildren = panel4.children;
+  for (var i = 0; i < allChildren.length; i++) {
+    var el = allChildren[i];
+    // Hide everything except delivery-toggle, delivery-section, email-status, and nav
+    if (el.className && (el.className.indexOf('section-title') !== -1 || el.className.indexOf('grid') !== -1 || el.className.indexOf('firma-wrapper') !== -1)) {
+      el.style.display = 'none';
+    }
+    if (el.tagName === 'P') el.style.display = 'none';
+  }
+  document.getElementById('delivery-toggle').style.display = 'none';
+  document.getElementById('email-status-msg').style.display = 'none';
 
-  // Hide send/download buttons
+  // Hide original buttons, show confirm button
   document.getElementById('btn-send').style.display = 'none';
   document.getElementById('btn-download').style.display = 'none';
   document.getElementById('btn-prev-4').style.display = 'none';
-  document.getElementById('email-status-msg').style.display = 'none';
 
-  // Add confirm delivery button
   var btnRow = document.querySelector('#panel-4 .btn-row');
   var confirmBtn = document.createElement('button');
   confirmBtn.className = 'btn btn-primary';
-  confirmBtn.textContent = '\u2713 Confirm Delivery';
+  confirmBtn.textContent = 'Confirm Delivery';
   confirmBtn.style.fontSize = '16px';
   confirmBtn.style.padding = '14px 32px';
   confirmBtn.onclick = function() { confirmDelivery(data.esn); };
   btnRow.appendChild(confirmBtn);
 
-  // Add info banner
+  // Add info banner at top of main
   var main = document.querySelector('.main');
   var banner = document.createElement('div');
   banner.style.cssText = 'background:#f0fdf4;border:1.5px solid #86efac;border-radius:8px;padding:16px;margin-bottom:20px;font-size:13px;color:#166534;line-height:1.6;';
   banner.innerHTML = '<strong>Delivery Confirmation for ' + data.esn + '</strong><br>' +
     'Sender: ' + (data.sender || '') + '<br>' +
-    'Equipment: ' + (data.eqType || '') + ' \u2014 ' + (data.eqBrand || '') + ' (S/N: ' + (data.eqSerial || '') + ')<br>' +
-    'Please sign below to confirm receipt of this equipment.';
+    'Equipment: ' + (data.eqType || '') + ' - ' + (data.eqBrand || '') + ' (S/N: ' + (data.eqSerial || '') + ')<br>' +
+    'Please sign below to confirm receipt.';
   main.insertBefore(banner, main.firstChild);
 }
 
@@ -760,52 +739,34 @@ function confirmDelivery(esn) {
 
   var recvDatetime = document.getElementById('recv-datetime').value || new Date().toLocaleString('en-US');
 
-  var payload = {
-    action: 'confirm_delivery',
-    esn: esn,
-    recvName: recvName,
-    recvDatetime: recvDatetime,
-    recvSignature: 'signed',
-    to_email: RECIPIENT
-  };
-
   toast('Confirming delivery...');
   fetch(APPS_SCRIPT_URL, {
     method: 'POST',
     mode: 'no-cors',
     headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify(payload)
+    body: JSON.stringify({
+      action: 'confirm_delivery',
+      esn: esn,
+      recvName: recvName,
+      recvDatetime: recvDatetime,
+      recvSignature: 'signed',
+      to_email: RECIPIENT
+    })
   }).then(function() {
     document.getElementById('success-msg').textContent = 'Delivery confirmed for ' + esn;
     document.getElementById('receiver-link-box').style.display = 'none';
     document.getElementById('success-overlay').classList.add('show');
     document.getElementById('btn-new').textContent = 'Done';
-    document.getElementById('btn-new').onclick = function() { window.close(); };
+    document.getElementById('btn-new').onclick = function() {
+      window.location.href = window.location.pathname;
+    };
   }).catch(function(err) {
-    toast('Error confirming: ' + err.message, true);
+    toast('Error: ' + err.message, true);
   });
 }
 
-// ── RESET ───────────────────────────────────────────────────────
-function resetForm() {
-  document.getElementById('success-overlay').classList.remove('show');
-  var inputs = document.querySelectorAll('input:not([readonly]),textarea');
-  for (var i = 0; i < inputs.length; i++) inputs[i].value = '';
-  var selects = document.querySelectorAll('select');
-  for (var i = 0; i < selects.length; i++) selects[i].selectedIndex = 0;
-  clearCanvas('sig-carrier'); clearCanvas('sig-receiver');
-  estadoDispositivo = '';
-  document.getElementById('btn-good').className    = 'estado-btn';
-  document.getElementById('btn-details').className = 'estado-btn';
-  document.getElementById('btn-poor').className    = 'estado-btn';
-  document.getElementById('delivery-toggle').classList.remove('open');
-  document.getElementById('delivery-section').classList.remove('open');
-  initApp();
-  goTo(0);
-}
-
-// ── CONFIG MODAL ────────────────────────────────────────────────
-function openModal()  { document.getElementById('config-modal').classList.add('show'); }
+// ── CONFIG MODAL ──
+function openModal() { document.getElementById('config-modal').classList.add('show'); }
 function closeModal() { document.getElementById('config-modal').classList.remove('show'); }
 function saveConfig() {
   APPS_SCRIPT_URL = document.getElementById('cfg-apps-url').value.trim();
@@ -814,12 +775,42 @@ function saveConfig() {
   safeSet('recipient_email', RECIPIENT);
   updateEmailStatus();
   closeModal();
-  toast('Settings saved \u2713');
+  toast('Settings saved');
 }
 
-// ── EVENT LISTENERS ─────────────────────────────────────────────
+// ── RESET ──
+function resetForm() {
+  document.getElementById('success-overlay').classList.remove('show');
+  document.getElementById('receiver-link-box').style.display = 'none';
+  var inputs = document.querySelectorAll('input:not([readonly]),textarea');
+  for (var i = 0; i < inputs.length; i++) inputs[i].value = '';
+  var selects = document.querySelectorAll('select');
+  for (var i = 0; i < selects.length; i++) selects[i].selectedIndex = 0;
+  clearCanvas('sig-carrier');
+  clearCanvas('sig-receiver');
+  estadoDispositivo = '';
+  document.getElementById('btn-good').className = 'estado-btn';
+  document.getElementById('btn-details').className = 'estado-btn';
+  document.getElementById('btn-poor').className = 'estado-btn';
+  document.getElementById('delivery-toggle').classList.remove('open');
+  document.getElementById('delivery-section').classList.remove('open');
+  initApp();
+  goTo(0);
+}
+
+// ── EVENT LISTENERS ──
 document.addEventListener('DOMContentLoaded', function() {
   initApp();
+  checkReceiveMode();
+
+  document.getElementById('btn-next-0').addEventListener('click', function() { next(0); });
+  document.getElementById('btn-next-1').addEventListener('click', function() { next(1); });
+  document.getElementById('btn-next-2').addEventListener('click', function() { next(2); });
+  document.getElementById('btn-next-3').addEventListener('click', function() { next(3); });
+  document.getElementById('btn-prev-1').addEventListener('click', function() { prev(1); });
+  document.getElementById('btn-prev-2').addEventListener('click', function() { prev(2); });
+  document.getElementById('btn-prev-3').addEventListener('click', function() { prev(3); });
+  document.getElementById('btn-prev-4').addEventListener('click', function() { prev(4); });
 
   document.getElementById('btn-download').addEventListener('click', downloadPDF);
   document.getElementById('btn-send').addEventListener('click', downloadAndSend);
@@ -830,23 +821,18 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('delivery-toggle').addEventListener('click', toggleDelivery);
   document.getElementById('clear-carrier').addEventListener('click', function() { clearCanvas('sig-carrier'); });
   document.getElementById('clear-receiver').addEventListener('click', function() { clearCanvas('sig-receiver'); });
+  document.getElementById('btn-copy-link').addEventListener('click', copyReceiverLink);
 
-  // Navigation
-  document.getElementById('btn-next-0').addEventListener('click', function() { next(0); });
-  document.getElementById('btn-next-1').addEventListener('click', function() { next(1); });
-  document.getElementById('btn-next-2').addEventListener('click', function() { next(2); });
-  document.getElementById('btn-next-3').addEventListener('click', function() { next(3); });
-  document.getElementById('btn-prev-1').addEventListener('click', function() { prev(1); });
-  document.getElementById('btn-prev-2').addEventListener('click', function() { prev(2); });
-  document.getElementById('btn-prev-3').addEventListener('click', function() { prev(3); });
-  document.getElementById('btn-prev-4').addEventListener('click', function() { prev(4); });
-
-  // Auto-fill carrier full name from courier info
+  // Auto-fill carrier full name
   document.getElementById('cour-nombre').addEventListener('input', function() {
-    var firmaName = document.getElementById('firma-nombre');
-    if (!firmaName.value || firmaName.value === this.value.slice(0, -1)) {
-      firmaName.value = this.value;
+    var fn = document.getElementById('firma-nombre');
+    if (!fn.value || fn.dataset.auto === '1') {
+      fn.value = this.value;
+      fn.dataset.auto = '1';
     }
+  });
+  document.getElementById('firma-nombre').addEventListener('input', function() {
+    this.dataset.auto = '0';
   });
 });
 </script>
