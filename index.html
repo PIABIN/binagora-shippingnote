@@ -288,6 +288,7 @@
 var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxkTojBWMAXmeffW3zvlNB-SVAqAXr4XTp1HCC5RUWI_Exl9Lved9eHPpo1f3WYlJz92A/exec';
 var RECIPIENT = 'office@binagora.com';
 var estadoDispositivo = '';
+var receiveData = null;
 
 function safeGet(k) { try { return localStorage.getItem(k) || ''; } catch(e) { return ''; } }
 function safeSet(k, v) { try { localStorage.setItem(k, v); } catch(e) {} }
@@ -608,7 +609,8 @@ function downloadAndSend() {
     courier_company: formData.courierCompany,
     device_status: formData.deviceStatus || '-',
     pdf_base64: pdfBase64,
-    pdf_filename: filename
+    pdf_filename: filename,
+    receiver_link: window.location.origin + window.location.pathname + '?mode=receive&id=' + formData.esn
   };
 
   fetch(APPS_SCRIPT_URL, {
@@ -674,6 +676,8 @@ function loadReceiveData(esnId) {
 }
 
 function populateReceiveView(data) {
+  receiveData = data;
+
   // Hide all panels, show only panel 4
   var panels = document.querySelectorAll('.panel');
   for (var i = 0; i < panels.length; i++) panels[i].classList.remove('active');
@@ -683,10 +687,29 @@ function populateReceiveView(data) {
   var steps = document.querySelectorAll('.step');
   for (var i = 0; i < steps.length; i++) steps[i].style.display = 'none';
 
-  // Set ESN display
+  // Set ESN display and populate ALL hidden form fields for PDF generation
   document.getElementById('display-numero').textContent = 'No. ' + data.esn;
   document.getElementById('numero').value = data.esn;
   document.getElementById('fecha').value = data.date || '';
+  document.getElementById('origen-dir').value = data.originAddress || '';
+  document.getElementById('origen-empresa').value = data.sender || '';
+  document.getElementById('origen-tel').value = data.senderPhone || '';
+  document.getElementById('dest-dir').value = data.destAddress || '';
+  document.getElementById('dest-empresa').value = data.receiver || '';
+  document.getElementById('dest-tel').value = data.receiverPhone || '';
+  document.getElementById('eq-tipo').value = data.eqType || '';
+  document.getElementById('eq-marca').value = data.eqBrand || '';
+  document.getElementById('eq-serie').value = data.eqSerial || '';
+  document.getElementById('eq-accesorios').value = data.eqAccessories || '';
+  document.getElementById('eq-obs').value = data.conditionNotes || '';
+  if (data.deviceStatus) setEstado(data.deviceStatus);
+  document.getElementById('cour-empresa').value = data.courierCompany || '';
+  document.getElementById('cour-nombre').value = data.carrierName || '';
+  document.getElementById('cour-dni').value = data.carrierId || '';
+  document.getElementById('cour-tel').value = data.carrierPhone || '';
+  document.getElementById('cour-patente').value = data.licensePlate || '';
+  document.getElementById('firma-nombre').value = data.carrierName || '';
+  document.getElementById('firma-datetime').value = data.pickupDatetime || '';
 
   // Open delivery section
   document.getElementById('delivery-toggle').classList.add('open');
@@ -738,6 +761,17 @@ function confirmDelivery(esn) {
   if (!APPS_SCRIPT_URL) { toast('Configuration error', true); return; }
 
   var recvDatetime = document.getElementById('recv-datetime').value || new Date().toLocaleString('en-US');
+  document.getElementById('recv-datetime').value = recvDatetime;
+
+  // Build the complete PDF with delivery confirmation filled in
+  var pdfBase64 = '';
+  var pdfFilename = 'ShippingNote-' + esn + '-CONFIRMED.pdf';
+  try {
+    var doc = buildPDF();
+    pdfBase64 = doc.output('datauristring').split(',')[1];
+  } catch(e) {
+    console.error('PDF error:', e);
+  }
 
   toast('Confirming delivery...');
   fetch(APPS_SCRIPT_URL, {
@@ -750,7 +784,9 @@ function confirmDelivery(esn) {
       recvName: recvName,
       recvDatetime: recvDatetime,
       recvSignature: 'signed',
-      to_email: RECIPIENT
+      to_email: RECIPIENT,
+      pdf_base64: pdfBase64,
+      pdf_filename: pdfFilename
     })
   }).then(function() {
     document.getElementById('success-msg').textContent = 'Delivery confirmed for ' + esn;
