@@ -158,7 +158,7 @@
   <div class="panel active" id="panel-0">
     <div class="section-title">Shipping Origin</div>
     <div class="grid grid-2">
-      <div class="field"><label class="required">Shipping Note No.</label><input type="text" id="numero" placeholder="e.g. ESN-0001"></div>
+      <div class="field"><label class="required">Shipping Note No.</label><input type="text" id="numero" readonly placeholder="Loading..."></div>
       <div class="field"><label>Date</label><input type="text" id="fecha" placeholder="MM/DD/YYYY"></div>
     </div>
     <div class="grid">
@@ -180,6 +180,11 @@
       <div class="field"><label class="required">Receiver Name</label><input type="text" id="dest-empresa"></div>
       <div class="field"><label>Phone</label><input type="tel" id="dest-tel" placeholder="+1 ..."></div>
     </div>
+    <div class="grid grid-2">
+      <div class="field"><label>Receiver Email</label><input type="email" id="dest-email" placeholder="receiver@company.com"></div>
+      <div></div>
+    </div>
+    <p style="font-size:11px;color:var(--muted);margin-top:-8px;margin-bottom:12px;">If provided, the receiver will get an automatic email with the delivery confirmation link.</p>
     <div class="nav">
       <button class="btn btn-secondary" id="btn-prev-1">← Back</button>
       <button class="btn btn-primary" id="btn-next-1">Next →</button>
@@ -295,12 +300,16 @@ function safeSet(k, v) { try { localStorage.setItem(k, v); } catch(e) {} }
 
 // ── INIT ──
 function initApp() {
-  var n = 1;
-  try { n = parseInt(localStorage.getItem('bin_esn') || '0') + 1; localStorage.setItem('bin_esn', n); } catch(e) {}
-  var num = 'ESN-' + String(n).padStart(4, '0');
-  document.getElementById('numero').value = num;
-  document.getElementById('display-numero').textContent = 'No. ' + num;
+  // Load saved config (only override defaults if localStorage has values)
+  var savedUrl = safeGet('apps_script_url');
+  if (savedUrl) APPS_SCRIPT_URL = savedUrl;
+  var savedRecipient = safeGet('recipient_email');
+  if (savedRecipient) RECIPIENT = savedRecipient;
+  document.getElementById('cfg-apps-url').value = APPS_SCRIPT_URL;
+  document.getElementById('cfg-recipient').value = RECIPIENT;
+  updateEmailStatus();
 
+  // Set date and time
   var now = new Date();
   var mm = String(now.getMonth() + 1).padStart(2, '0');
   var dd = String(now.getDate()).padStart(2, '0');
@@ -312,17 +321,40 @@ function initApp() {
   document.getElementById('fecha').value = mm + '/' + dd + '/' + yyyy;
   document.getElementById('firma-datetime').value = mm + '/' + dd + '/' + yyyy + ', ' + String(hh).padStart(2,'0') + ':' + min + ' ' + ampm;
 
-  // Load saved config (only override defaults if localStorage has values)
-  var savedUrl = safeGet('apps_script_url');
-  if (savedUrl) APPS_SCRIPT_URL = savedUrl;
-  var savedRecipient = safeGet('recipient_email');
-  if (savedRecipient) RECIPIENT = savedRecipient;
-  document.getElementById('cfg-apps-url').value = APPS_SCRIPT_URL;
-  document.getElementById('cfg-recipient').value = RECIPIENT;
-  updateEmailStatus();
+  // Fetch next ESN from server (auto-incremental)
+  fetchNextESN();
 
   initCanvas('sig-carrier');
   initCanvas('sig-receiver');
+}
+
+function fetchNextESN() {
+  if (!APPS_SCRIPT_URL) {
+    // Fallback if no URL configured
+    document.getElementById('numero').value = 'ESN-0001';
+    document.getElementById('display-numero').textContent = 'No. ESN-0001';
+    return;
+  }
+  document.getElementById('numero').value = 'Loading...';
+  document.getElementById('display-numero').textContent = 'No. ...';
+
+  fetch(APPS_SCRIPT_URL + '?action=next_esn')
+    .then(function(r) { return r.json(); })
+    .then(function(resp) {
+      if (resp.ok && resp.nextEsn) {
+        document.getElementById('numero').value = resp.nextEsn;
+        document.getElementById('display-numero').textContent = 'No. ' + resp.nextEsn;
+      } else {
+        // Fallback
+        document.getElementById('numero').value = 'ESN-0001';
+        document.getElementById('display-numero').textContent = 'No. ESN-0001';
+      }
+    })
+    .catch(function() {
+      // Fallback if server unreachable
+      document.getElementById('numero').value = 'ESN-0001';
+      document.getElementById('display-numero').textContent = 'No. ESN-0001';
+    });
 }
 
 function updateEmailStatus() {
@@ -568,8 +600,9 @@ function collectFormData() {
     carrierId: document.getElementById('cour-dni').value,
     carrierPhone: document.getElementById('cour-tel').value,
     licensePlate: document.getElementById('cour-patente').value,
-    carrierSignature: isCanvasEmpty('sig-carrier') ? '' : 'signed',
-    pickupDatetime: document.getElementById('firma-datetime').value
+    carrierSignature: isCanvasEmpty('sig-carrier') ? '' : document.getElementById('sig-carrier').toDataURL('image/png'),
+    pickupDatetime: document.getElementById('firma-datetime').value,
+    receiverEmail: document.getElementById('dest-email').value.trim()
   };
 }
 
@@ -610,7 +643,8 @@ function downloadAndSend() {
     device_status: formData.deviceStatus || '-',
     pdf_base64: pdfBase64,
     pdf_filename: filename,
-    receiver_link: window.location.origin + window.location.pathname + '?mode=receive&id=' + formData.esn
+    receiver_link: window.location.origin + window.location.pathname + '?mode=receive&id=' + formData.esn,
+    receiver_email: formData.receiverEmail
   };
 
   fetch(APPS_SCRIPT_URL, {
@@ -624,7 +658,11 @@ function downloadAndSend() {
     // Show success with receiver link
     var esnId = formData.esn;
     var receiverUrl = window.location.origin + window.location.pathname + '?mode=receive&id=' + esnId;
-    document.getElementById('success-msg').textContent = 'PDF downloaded and sent to ' + RECIPIENT;
+    var successText = 'PDF downloaded and sent to ' + RECIPIENT;
+    if (formData.receiverEmail) {
+      successText += '\nConfirmation link sent to ' + formData.receiverEmail;
+    }
+    document.getElementById('success-msg').textContent = successText;
     document.getElementById('receiver-link').value = receiverUrl;
     document.getElementById('receiver-link-box').style.display = 'block';
     document.getElementById('success-overlay').classList.add('show');
@@ -711,6 +749,20 @@ function populateReceiveView(data) {
   document.getElementById('firma-nombre').value = data.carrierName || '';
   document.getElementById('firma-datetime').value = data.pickupDatetime || '';
 
+  // Load carrier signature from base64 data onto the canvas
+  if (data.carrierSignature && data.carrierSignature.indexOf('data:image') === 0) {
+    var sigImg = new Image();
+    sigImg.onload = function() {
+      var c = document.getElementById('sig-carrier');
+      if (c) {
+        var ctx = c.getContext('2d');
+        ctx.clearRect(0, 0, c.width, c.height);
+        ctx.drawImage(sigImg, 0, 0, c.width, c.height);
+      }
+    };
+    sigImg.src = data.carrierSignature;
+  }
+
   // Open delivery section
   document.getElementById('delivery-toggle').classList.add('open');
   document.getElementById('delivery-section').classList.add('open');
@@ -752,6 +804,19 @@ function populateReceiveView(data) {
     'Equipment: ' + (data.eqType || '') + ' - ' + (data.eqBrand || '') + ' (S/N: ' + (data.eqSerial || '') + ')<br>' +
     'Please sign below to confirm receipt.';
   main.insertBefore(banner, main.firstChild);
+
+  // Show carrier signature in read-only mode before the delivery section
+  if (data.carrierSignature && data.carrierSignature.indexOf('data:image') === 0) {
+    var carrierSigBlock = document.createElement('div');
+    carrierSigBlock.style.cssText = 'background:white;border:1.5px solid #d8d5cc;border-radius:8px;padding:16px;margin-bottom:20px;';
+    carrierSigBlock.innerHTML = '<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:#888;margin-bottom:6px;">Carrier Pickup Signature</div>' +
+      '<div style="display:flex;gap:20px;align-items:center;margin-bottom:10px;">' +
+        '<div><span style="font-size:11px;color:#888;">Name:</span> <strong>' + (data.carrierName || '') + '</strong></div>' +
+        '<div><span style="font-size:11px;color:#888;">Date:</span> ' + (data.pickupDatetime || '') + '</div>' +
+      '</div>' +
+      '<img src="' + data.carrierSignature + '" style="max-width:300px;height:80px;border:1px solid #d8d5cc;border-radius:6px;background:#fafafa;" alt="Carrier signature">';
+    main.insertBefore(carrierSigBlock, banner.nextSibling);
+  }
 }
 
 function confirmDelivery(esn) {
@@ -830,6 +895,7 @@ function resetForm() {
   document.getElementById('btn-poor').className = 'estado-btn';
   document.getElementById('delivery-toggle').classList.remove('open');
   document.getElementById('delivery-section').classList.remove('open');
+  document.getElementById('dest-email').value = '';
   initApp();
   goTo(0);
 }
