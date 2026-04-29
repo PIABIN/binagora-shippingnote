@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -296,6 +295,7 @@ var RECIPIENT = 'office@binagora.com';
 var estadoDispositivo = '';
 var receiveData = null;
 var currentUser = null; // Google user info
+var receiveToken = null; // UUID token for receive mode
 
 // ── GOOGLE OAUTH CONFIG ──
 // Replace with your actual Google Cloud OAuth Client ID
@@ -678,6 +678,8 @@ function downloadAndSend() {
   var doc = buildPDF();
   var pdfBase64 = doc.output('datauristring').split(',')[1];
 
+  // Note: receiver_link is now generated server-side with UUID token
+  // We pass the base URL so the server can build the full token-based link
   var payload = {
     action: 'send_email',
     data: formData,
@@ -693,7 +695,7 @@ function downloadAndSend() {
     device_status: formData.deviceStatus || '-',
     pdf_base64: pdfBase64,
     pdf_filename: filename,
-    receiver_link: window.location.origin + window.location.pathname + '?mode=receive&id=' + formData.esn,
+    receiver_base_url: window.location.origin + window.location.pathname,
     receiver_email: formData.receiverEmail
   };
 
@@ -704,15 +706,28 @@ function downloadAndSend() {
     body: JSON.stringify(payload)
   }).then(function() {
     doc.save(filename);
-    var esnId = formData.esn;
-    var receiverUrl = window.location.origin + window.location.pathname + '?mode=receive&id=' + esnId;
     var successText = 'PDF downloaded and sent to ' + RECIPIENT;
     if (formData.receiverEmail) {
       successText += '\nConfirmation link sent to ' + formData.receiverEmail;
     }
     document.getElementById('success-msg').textContent = successText;
-    document.getElementById('receiver-link').value = receiverUrl;
-    document.getElementById('receiver-link-box').style.display = 'block';
+
+    // Fetch the token-based receiver link from the server
+    // (since no-cors prevents reading the POST response)
+    fetch(APPS_SCRIPT_URL + '?action=get_token&id=' + encodeURIComponent(formData.esn))
+      .then(function(r) { return r.json(); })
+      .then(function(tokenResp) {
+        if (tokenResp.ok && tokenResp.token) {
+          var receiverUrl = window.location.origin + window.location.pathname + '?mode=receive&token=' + tokenResp.token;
+          document.getElementById('receiver-link').value = receiverUrl;
+          document.getElementById('receiver-link-box').style.display = 'block';
+        }
+      })
+      .catch(function() {
+        // If token fetch fails, don't show receiver link box
+        document.getElementById('receiver-link-box').style.display = 'none';
+      });
+
     document.getElementById('success-overlay').classList.add('show');
   }).catch(function(err) {
     console.error('Send error:', err);
@@ -736,20 +751,34 @@ function copyReceiverLink() {
 // ── RECEIVE MODE ──
 function checkReceiveMode() {
   var params = new URLSearchParams(window.location.search);
-  if (params.get('mode') === 'receive' && params.get('id')) {
-    // Hide auth overlay for receivers
+  if (params.get('mode') === 'receive' && params.get('token')) {
+    // Token-based receive mode (v5 - secure)
+    receiveToken = params.get('token');
     document.getElementById('auth-overlay').classList.remove('show');
-    loadReceiveData(params.get('id'));
+    loadReceiveData(receiveToken);
+  } else if (params.get('mode') === 'receive' && params.get('id')) {
+    // Legacy ID-based receive mode (backward compat) - redirect to error
+    document.getElementById('auth-overlay').classList.remove('show');
+    document.getElementById('steps-bar').style.display = 'none';
+    var panels = document.querySelectorAll('.panel');
+    for (var i = 0; i < panels.length; i++) panels[i].classList.remove('active');
+    var main = document.getElementById('main-content');
+    main.innerHTML = '<div class="confirmed-view">' +
+      '<div class="confirmed-icon" style="color:var(--accent2);">&#9888;</div>' +
+      '<h2>Invalid Link</h2>' +
+      '<p>This link format is no longer supported. Please request a new delivery confirmation link from the sender.</p>' +
+      '<p style="margin-top:20px;font-size:13px;">Contact <a href="mailto:office@binagora.com">office@binagora.com</a> for assistance.</p>' +
+      '</div>';
   }
 }
 
-function loadReceiveData(esnId) {
+function loadReceiveData(token) {
   if (!APPS_SCRIPT_URL) {
     toast('Configuration error', true);
     return;
   }
   toast('Loading shipping note...');
-  fetch(APPS_SCRIPT_URL + '?action=get_esn&id=' + encodeURIComponent(esnId))
+  fetch(APPS_SCRIPT_URL + '?action=get_esn&token=' + encodeURIComponent(token))
     .then(function(r) { return r.json(); })
     .then(function(resp) {
       if (resp.ok && resp.data) {
@@ -760,7 +789,17 @@ function loadReceiveData(esnId) {
           populateReceiveView(resp.data);
         }
       } else {
-        toast('Shipping note not found: ' + esnId, true);
+        // Token not found - show generic error (don't reveal if ESN exists)
+        document.getElementById('steps-bar').style.display = 'none';
+        var panels = document.querySelectorAll('.panel');
+        for (var i = 0; i < panels.length; i++) panels[i].classList.remove('active');
+        var main = document.getElementById('main-content');
+        main.innerHTML = '<div class="confirmed-view">' +
+          '<div class="confirmed-icon" style="color:var(--accent2);">&#10007;</div>' +
+          '<h2>Link Not Found</h2>' +
+          '<p>This delivery confirmation link is invalid or has expired. Please contact the sender for a new link.</p>' +
+          '<p style="margin-top:20px;font-size:13px;">Contact <a href="mailto:office@binagora.com">office@binagora.com</a> for assistance.</p>' +
+          '</div>';
       }
     })
     .catch(function(err) {
@@ -916,6 +955,7 @@ function confirmDelivery(esn) {
     body: JSON.stringify({
       action: 'confirm_delivery',
       esn: esn,
+      token: receiveToken,
       recvName: recvName,
       recvDatetime: recvDatetime,
       recvSignature: document.getElementById('sig-receiver').toDataURL('image/png'),
