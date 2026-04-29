@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Binagora — Equipment Shipping Note</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
   :root {
@@ -78,25 +79,41 @@
   .success-title{font-size:22px;font-weight:700;color:var(--accent);margin-bottom:8px;}
   .success-sub{font-size:14px;color:var(--muted);margin-bottom:28px;line-height:1.6;}
   .btn-new{background:var(--accent);color:white;padding:12px 28px;border-radius:7px;font-size:14px;font-weight:600;cursor:pointer;border:none;font-family:var(--sans);}
-  .config-btn{position:fixed;bottom:24px;right:24px;background:var(--accent);color:white;border:none;border-radius:50%;width:44px;height:44px;font-size:18px;cursor:pointer;z-index:150;box-shadow:0 4px 12px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;}
-  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center;}
-  .modal-overlay.show{display:flex;}
-  .modal{background:white;border-radius:12px;padding:32px;max-width:480px;width:90%;}
-  .modal h2{font-size:18px;font-weight:700;color:var(--accent);margin-bottom:8px;}
-  .modal p{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6;}
-  .modal .field{margin-bottom:14px;}
-  .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;}
-  .btn-save{background:var(--accent);color:white;padding:10px 22px;border-radius:6px;border:none;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;}
-  .btn-cancel{background:white;color:var(--muted);padding:10px 22px;border-radius:6px;border:1.5px solid var(--border);font-family:var(--sans);font-size:13px;cursor:pointer;}
-  .instructions{background:#f0fdf4;border:1.5px solid #86efac;border-radius:8px;padding:14px 16px;font-size:12px;line-height:1.8;color:#166534;margin-bottom:16px;}
-  .instructions a{color:#15803d;font-weight:600;}
+  .required::after{content:' *';color:var(--accent2);}
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--accent);color:white;padding:12px 24px;border-radius:8px;font-size:13px;font-weight:500;opacity:0;pointer-events:none;transition:opacity 0.3s;z-index:999;white-space:nowrap;}
   .toast.show{opacity:1;}
   .toast.err{background:var(--accent2);}
-  .required::after{content:' *';color:var(--accent2);}
+
+  /* Auth overlay */
+  .auth-overlay{display:none;position:fixed;inset:0;background:var(--bg);z-index:300;align-items:center;justify-content:center;flex-direction:column;}
+  .auth-overlay.show{display:flex;}
+  .auth-card{background:white;border-radius:16px;padding:48px 40px;text-align:center;max-width:400px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.08);}
+  .auth-card h2{font-size:20px;font-weight:700;color:var(--accent);margin-bottom:8px;}
+  .auth-card p{font-size:14px;color:var(--muted);margin-bottom:24px;line-height:1.6;}
+  .auth-error{color:var(--accent2);font-size:13px;margin-top:12px;display:none;}
+  .user-bar{display:flex;align-items:center;gap:10px;padding:8px 16px;background:rgba(255,255,255,0.15);border-radius:8px;}
+  .user-bar img{width:28px;height:28px;border-radius:50%;}
+  .user-bar span{font-size:12px;color:rgba(255,255,255,0.8);}
+  .user-bar .signout{font-size:11px;color:rgba(255,255,255,0.5);cursor:pointer;margin-left:auto;text-decoration:underline;}
+
+  /* Already confirmed overlay */
+  .confirmed-view{text-align:center;padding:60px 20px;}
+  .confirmed-view .confirmed-icon{font-size:64px;color:var(--green);margin-bottom:16px;}
+  .confirmed-view h2{font-size:22px;font-weight:700;color:var(--accent);margin-bottom:12px;}
+  .confirmed-view p{font-size:14px;color:var(--muted);line-height:1.7;max-width:400px;margin:0 auto;}
 </style>
 </head>
 <body>
+
+<!-- Auth Overlay (Google Sign-In for Binagora users) -->
+<div class="auth-overlay" id="auth-overlay">
+  <div class="auth-card">
+    <h2>Binagora Shipping Note</h2>
+    <p>Sign in with your Binagora account to create shipping notes.</p>
+    <div id="google-signin-btn"></div>
+    <div class="auth-error" id="auth-error">Access restricted to @binagora.com accounts only.</div>
+  </div>
+</div>
 
 <!-- Success Overlay with receiver link -->
 <div class="success-overlay" id="success-overlay">
@@ -115,37 +132,21 @@
   </div>
 </div>
 
-<!-- Settings Modal - Apps Script (NOT EmailJS) -->
-<div class="modal-overlay" id="config-modal">
-  <div class="modal">
-    <h2>Settings</h2>
-    <div class="instructions">
-      <strong>Google Apps Script Setup:</strong><br>
-      1. Go to <a href="https://script.google.com" target="_blank">script.google.com</a> → New project<br>
-      2. Paste the backend code (see guide)<br>
-      3. Click <strong>Deploy → New deployment → Web app</strong><br>
-      4. Set "Who has access" to <strong>Anyone</strong> → Deploy<br>
-      5. Copy the URL and paste it below
-    </div>
-    <div class="field"><label>Google Apps Script URL</label><input type="text" id="cfg-apps-url" placeholder="https://script.google.com/macros/s/.../exec"></div>
-    <p style="font-size:11px;color:#888;margin-top:-8px;margin-bottom:12px;">Required for email sending, data storage, and receiver link feature.</p>
-    <div class="field"><label>Recipient Email</label><input type="text" id="cfg-recipient" placeholder="office@binagora.com"></div>
-    <p style="font-size:11px;color:#888;margin-top:-8px;margin-bottom:12px;">Email address where shipping notes will be sent.</p>
-    <div class="modal-actions">
-      <button class="btn-cancel" id="btn-cancel-modal">Cancel</button>
-      <button class="btn-save" id="btn-save-config">Save</button>
-    </div>
-  </div>
-</div>
-
 <div class="header">
   <div class="header-left">
     <div class="doc-title">Equipment Shipping Note</div>
   </div>
-  <div class="numero-remito" id="display-numero">No. ESN-0001</div>
+  <div style="display:flex;align-items:center;gap:16px;">
+    <div class="numero-remito" id="display-numero">No. ESN-0001</div>
+    <div class="user-bar" id="user-bar" style="display:none;">
+      <img id="user-avatar" src="" alt="">
+      <span id="user-name"></span>
+      <span class="signout" id="btn-signout">Sign out</span>
+    </div>
+  </div>
 </div>
 
-<div class="steps">
+<div class="steps" id="steps-bar">
   <div class="step active" onclick="goTo(0)">1. Origin</div>
   <div class="step" onclick="goTo(1)">2. Destination</div>
   <div class="step" onclick="goTo(2)">3. Equipment</div>
@@ -153,7 +154,7 @@
   <div class="step" onclick="goTo(4)">5. Sign & Send</div>
 </div>
 
-<div class="main">
+<div class="main" id="main-content">
 
   <div class="panel active" id="panel-0">
     <div class="section-title">Shipping Origin</div>
@@ -168,7 +169,7 @@
       <div class="field"><label class="required">Sender Name</label><input type="text" id="origen-empresa"></div>
       <div class="field"><label>Phone</label><input type="tel" id="origen-tel" placeholder="+1 ..."></div>
     </div>
-    <div class="nav"><span></span><button class="btn btn-primary" id="btn-next-0">Next →</button></div>
+    <div class="nav"><span></span><button class="btn btn-primary" id="btn-next-0">Next &rarr;</button></div>
   </div>
 
   <div class="panel" id="panel-1">
@@ -186,8 +187,8 @@
     </div>
     <p style="font-size:11px;color:var(--muted);margin-top:-8px;margin-bottom:12px;">If provided, the receiver will get an automatic email with the delivery confirmation link.</p>
     <div class="nav">
-      <button class="btn btn-secondary" id="btn-prev-1">← Back</button>
-      <button class="btn btn-primary" id="btn-next-1">Next →</button>
+      <button class="btn btn-secondary" id="btn-prev-1">&larr; Back</button>
+      <button class="btn btn-primary" id="btn-next-1">Next &rarr;</button>
     </div>
   </div>
 
@@ -212,17 +213,17 @@
     <div class="field" style="margin-bottom:16px;">
       <label>Device Status</label>
       <div class="estado-group">
-        <button class="estado-btn" onclick="setEstado('Good')" id="btn-good">✓ Good</button>
-        <button class="estado-btn" onclick="setEstado('Has Details')" id="btn-details">⚠ Has Details</button>
-        <button class="estado-btn" onclick="setEstado('Poor')" id="btn-poor">✗ Poor</button>
+        <button class="estado-btn" onclick="setEstado('Good')" id="btn-good">&#10003; Good</button>
+        <button class="estado-btn" onclick="setEstado('Has Details')" id="btn-details">&#9888; Has Details</button>
+        <button class="estado-btn" onclick="setEstado('Poor')" id="btn-poor">&#10007; Poor</button>
       </div>
     </div>
     <div class="grid">
       <div class="field"><label>Condition Notes</label><textarea id="eq-obs" placeholder="Describe scratches, dents, missing parts..."></textarea></div>
     </div>
     <div class="nav">
-      <button class="btn btn-secondary" id="btn-prev-2">← Back</button>
-      <button class="btn btn-primary" id="btn-next-2">Next →</button>
+      <button class="btn btn-secondary" id="btn-prev-2">&larr; Back</button>
+      <button class="btn btn-primary" id="btn-next-2">Next &rarr;</button>
     </div>
   </div>
 
@@ -238,8 +239,8 @@
       <div class="field"><label>Vehicle License Plate</label><input type="text" id="cour-patente"></div>
     </div>
     <div class="nav">
-      <button class="btn btn-secondary" id="btn-prev-3">← Back</button>
-      <button class="btn btn-primary" id="btn-next-3">Next →</button>
+      <button class="btn btn-secondary" id="btn-prev-3">&larr; Back</button>
+      <button class="btn btn-primary" id="btn-next-3">Next &rarr;</button>
     </div>
   </div>
 
@@ -253,11 +254,11 @@
     <div class="firma-wrapper">
       <div class="firma-label">Carrier Signature — sign with finger or mouse</div>
       <canvas id="sig-carrier" width="700" height="160"></canvas>
-      <div class="firma-actions"><button class="btn-clear" id="clear-carrier">🗑 Clear</button></div>
+      <div class="firma-actions"><button class="btn-clear" id="clear-carrier">Clear</button></div>
     </div>
 
     <div class="optional-toggle" id="delivery-toggle">
-      <span class="toggle-icon">▶</span>
+      <span class="toggle-icon">&#9654;</span>
       <span>+ Add Delivery Confirmation <span style="font-size:11px;font-weight:400;">(optional)</span></span>
     </div>
     <div class="optional-section" id="delivery-section">
@@ -269,46 +270,109 @@
       <div class="firma-wrapper">
         <div class="firma-label">Receiver Signature (at destination)</div>
         <canvas id="sig-receiver" width="700" height="160"></canvas>
-        <div class="firma-actions"><button class="btn-clear" id="clear-receiver">🗑 Clear</button></div>
+        <div class="firma-actions"><button class="btn-clear" id="clear-receiver">Clear</button></div>
       </div>
     </div>
 
-    <div class="email-status nok" id="email-status-msg">⚠ Email not configured — click ⚙️ to set up</div>
+    <div class="email-status ok" id="email-status-msg">Email ready</div>
     <div class="nav">
-      <button class="btn btn-secondary" id="btn-prev-4">← Back</button>
+      <button class="btn btn-secondary" id="btn-prev-4">&larr; Back</button>
       <div class="btn-row">
-        <button class="btn btn-pdf" id="btn-download">⬇ Download PDF</button>
-        <button class="btn btn-email" id="btn-send">📧 Send & Download</button>
+        <button class="btn btn-pdf" id="btn-download">Download PDF</button>
+        <button class="btn btn-email" id="btn-send">Send & Download</button>
       </div>
     </div>
   </div>
 
 </div>
 
-<button class="config-btn" id="config-btn" title="Settings">&#9881;&#65039;</button>
 <div class="toast" id="toast"></div>
 
 <script>
-// ── CONFIG ──
+// ── CONFIG (hardcoded - no settings modal needed) ──
 var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxkTojBWMAXmeffW3zvlNB-SVAqAXr4XTp1HCC5RUWI_Exl9Lved9eHPpo1f3WYlJz92A/exec';
 var RECIPIENT = 'office@binagora.com';
 var estadoDispositivo = '';
 var receiveData = null;
+var currentUser = null; // Google user info
 
-function safeGet(k) { try { return localStorage.getItem(k) || ''; } catch(e) { return ''; } }
-function safeSet(k, v) { try { localStorage.setItem(k, v); } catch(e) {} }
+// ── GOOGLE OAUTH CONFIG ──
+// Replace with your actual Google Cloud OAuth Client ID
+var GOOGLE_CLIENT_ID = '147241947414-g8ug5t0r4p2r5u9brnrjnpuk4tfh51q0.apps.googleusercontent.com';
+var ALLOWED_DOMAIN = 'binagora.com';
+
+// ── AUTH ──
+function handleGoogleSignIn(response) {
+  // Decode the JWT credential
+  var payload = JSON.parse(atob(response.credential.split('.')[1]));
+  var email = payload.email || '';
+  var domain = email.split('@')[1] || '';
+
+  if (domain !== ALLOWED_DOMAIN) {
+    document.getElementById('auth-error').style.display = 'block';
+    // Sign out the non-binagora user
+    google.accounts.id.disableAutoSelect();
+    return;
+  }
+
+  // Auth successful
+  currentUser = {
+    email: email,
+    name: payload.name || email,
+    picture: payload.picture || ''
+  };
+
+  document.getElementById('auth-overlay').classList.remove('show');
+  document.getElementById('user-bar').style.display = 'flex';
+  document.getElementById('user-avatar').src = currentUser.picture;
+  document.getElementById('user-name').textContent = currentUser.name;
+
+  // Now init the app
+  initApp();
+}
+
+function signOut() {
+  currentUser = null;
+  google.accounts.id.disableAutoSelect();
+  document.getElementById('user-bar').style.display = 'none';
+  document.getElementById('auth-overlay').classList.add('show');
+  document.getElementById('auth-error').style.display = 'none';
+}
+
+function initGoogleAuth() {
+  // Only require auth for creation mode (not receive mode)
+  var params = new URLSearchParams(window.location.search);
+  if (params.get('mode') === 'receive') {
+    // Receiver mode - no auth required
+    initApp();
+    checkReceiveMode();
+    return;
+  }
+
+  // Show auth overlay
+  document.getElementById('auth-overlay').classList.add('show');
+
+  // Initialize Google Identity Services
+  if (typeof google !== 'undefined' && google.accounts) {
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: handleGoogleSignIn,
+      auto_select: true,
+      hosted_domain: ALLOWED_DOMAIN
+    });
+    google.accounts.id.renderButton(
+      document.getElementById('google-signin-btn'),
+      { theme: 'outline', size: 'large', width: 280, text: 'signin_with' }
+    );
+    google.accounts.id.prompt(); // Auto-select if only one account
+  } else {
+    // If Google library didn't load, wait and retry
+    setTimeout(initGoogleAuth, 500);
+  }
+}
 
 // ── INIT ──
 function initApp() {
-  // Load saved config (only override defaults if localStorage has values)
-  var savedUrl = safeGet('apps_script_url');
-  if (savedUrl) APPS_SCRIPT_URL = savedUrl;
-  var savedRecipient = safeGet('recipient_email');
-  if (savedRecipient) RECIPIENT = savedRecipient;
-  document.getElementById('cfg-apps-url').value = APPS_SCRIPT_URL;
-  document.getElementById('cfg-recipient').value = RECIPIENT;
-  updateEmailStatus();
-
   // Set date and time
   var now = new Date();
   var mm = String(now.getMonth() + 1).padStart(2, '0');
@@ -330,7 +394,6 @@ function initApp() {
 
 function fetchNextESN() {
   if (!APPS_SCRIPT_URL) {
-    // Fallback if no URL configured
     document.getElementById('numero').value = 'ESN-0001';
     document.getElementById('display-numero').textContent = 'No. ESN-0001';
     return;
@@ -345,27 +408,14 @@ function fetchNextESN() {
         document.getElementById('numero').value = resp.nextEsn;
         document.getElementById('display-numero').textContent = 'No. ' + resp.nextEsn;
       } else {
-        // Fallback
         document.getElementById('numero').value = 'ESN-0001';
         document.getElementById('display-numero').textContent = 'No. ESN-0001';
       }
     })
     .catch(function() {
-      // Fallback if server unreachable
       document.getElementById('numero').value = 'ESN-0001';
       document.getElementById('display-numero').textContent = 'No. ESN-0001';
     });
-}
-
-function updateEmailStatus() {
-  var el = document.getElementById('email-status-msg');
-  if (APPS_SCRIPT_URL) {
-    el.className = 'email-status ok';
-    el.textContent = 'Email ready - will send to ' + RECIPIENT;
-  } else {
-    el.className = 'email-status nok';
-    el.textContent = 'Not configured - click the gear icon to set up';
-  }
 }
 
 // ── NAVIGATION ──
@@ -554,7 +604,7 @@ function buildPDF() {
   doc.setFontSize(7.5); doc.setFont('helvetica','normal'); doc.setTextColor(150);
   doc.text('Carrier Signature', M, y+28); y += 34;
 
-  // DELIVERY CONFIRMATION - smart page break
+  // DELIVERY CONFIRMATION
   checkPage(55);
   y = sec('Delivery Confirmation', y);
   fld('Receiver Full Name', document.getElementById('recv-nombre').value || '—', M, y);
@@ -602,7 +652,8 @@ function collectFormData() {
     licensePlate: document.getElementById('cour-patente').value,
     carrierSignature: isCanvasEmpty('sig-carrier') ? '' : document.getElementById('sig-carrier').toDataURL('image/png'),
     pickupDatetime: document.getElementById('firma-datetime').value,
-    receiverEmail: document.getElementById('dest-email').value.trim()
+    receiverEmail: document.getElementById('dest-email').value.trim(),
+    createdBy: currentUser ? currentUser.email : ''
   };
 }
 
@@ -617,17 +668,15 @@ function downloadPDF() {
 function downloadAndSend() {
   if (!validatePanel(4)) return;
   if (isCanvasEmpty('sig-carrier')) { toast('The carrier must sign first', true); return; }
-  if (!APPS_SCRIPT_URL) { toast('Configure Apps Script URL first - click the gear icon', true); return; }
+  if (!APPS_SCRIPT_URL) { toast('Configuration error', true); return; }
 
   toast('Saving and sending...');
   var formData = collectFormData();
   var filename = 'ShippingNote-' + formData.esn + '.pdf';
 
-  // Build PDF and get base64
   var doc = buildPDF();
   var pdfBase64 = doc.output('datauristring').split(',')[1];
 
-  // Send to Apps Script FIRST, then download PDF
   var payload = {
     action: 'send_email',
     data: formData,
@@ -653,9 +702,7 @@ function downloadAndSend() {
     headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify(payload)
   }).then(function() {
-    // Download PDF after fetch completes
     doc.save(filename);
-    // Show success with receiver link
     var esnId = formData.esn;
     var receiverUrl = window.location.origin + window.location.pathname + '?mode=receive&id=' + esnId;
     var successText = 'PDF downloaded and sent to ' + RECIPIENT;
@@ -689,6 +736,8 @@ function copyReceiverLink() {
 function checkReceiveMode() {
   var params = new URLSearchParams(window.location.search);
   if (params.get('mode') === 'receive' && params.get('id')) {
+    // Hide auth overlay for receivers
+    document.getElementById('auth-overlay').classList.remove('show');
     loadReceiveData(params.get('id'));
   }
 }
@@ -699,11 +748,16 @@ function loadReceiveData(esnId) {
     return;
   }
   toast('Loading shipping note...');
-  fetch(APPS_SCRIPT_URL + '?id=' + encodeURIComponent(esnId))
+  fetch(APPS_SCRIPT_URL + '?action=get_esn&id=' + encodeURIComponent(esnId))
     .then(function(r) { return r.json(); })
     .then(function(resp) {
       if (resp.ok && resp.data) {
-        populateReceiveView(resp.data);
+        // ── SECURITY: Check if already confirmed ──
+        if (resp.data.deliveryConfirmed) {
+          showAlreadyConfirmed(resp.data.esn);
+        } else {
+          populateReceiveView(resp.data);
+        }
       } else {
         toast('Shipping note not found: ' + esnId, true);
       }
@@ -711,6 +765,23 @@ function loadReceiveData(esnId) {
     .catch(function(err) {
       toast('Error loading: ' + err.message, true);
     });
+}
+
+// ── ALREADY CONFIRMED VIEW ──
+function showAlreadyConfirmed(esn) {
+  // Hide steps and all panels
+  document.getElementById('steps-bar').style.display = 'none';
+  var panels = document.querySelectorAll('.panel');
+  for (var i = 0; i < panels.length; i++) panels[i].classList.remove('active');
+
+  // Show confirmed message (no sensitive data exposed)
+  var main = document.getElementById('main-content');
+  main.innerHTML = '<div class="confirmed-view">' +
+    '<div class="confirmed-icon">&#10004;</div>' +
+    '<h2>Delivery Already Confirmed</h2>' +
+    '<p>The delivery for shipping note <strong>' + esn + '</strong> has already been confirmed and signed. No further action is needed.</p>' +
+    '<p style="margin-top:20px;font-size:13px;">If you believe this is an error, please contact <a href="mailto:office@binagora.com">office@binagora.com</a>.</p>' +
+    '</div>';
 }
 
 function populateReceiveView(data) {
@@ -722,8 +793,7 @@ function populateReceiveView(data) {
   document.getElementById('panel-4').classList.add('active');
 
   // Hide step tabs
-  var steps = document.querySelectorAll('.step');
-  for (var i = 0; i < steps.length; i++) steps[i].style.display = 'none';
+  document.getElementById('steps-bar').style.display = 'none';
 
   // Set ESN display and populate ALL hidden form fields for PDF generation
   document.getElementById('display-numero').textContent = 'No. ' + data.esn;
@@ -772,7 +842,6 @@ function populateReceiveView(data) {
   var allChildren = panel4.children;
   for (var i = 0; i < allChildren.length; i++) {
     var el = allChildren[i];
-    // Hide everything except delivery-toggle, delivery-section, email-status, and nav
     if (el.className && (el.className.indexOf('section-title') !== -1 || el.className.indexOf('grid') !== -1 || el.className.indexOf('firma-wrapper') !== -1)) {
       el.style.display = 'none';
     }
@@ -796,7 +865,7 @@ function populateReceiveView(data) {
   btnRow.appendChild(confirmBtn);
 
   // Add info banner at top of main
-  var main = document.querySelector('.main');
+  var main = document.getElementById('main-content');
   var banner = document.createElement('div');
   banner.style.cssText = 'background:#f0fdf4;border:1.5px solid #86efac;border-radius:8px;padding:16px;margin-bottom:20px;font-size:13px;color:#166534;line-height:1.6;';
   banner.innerHTML = '<strong>Delivery Confirmation for ' + data.esn + '</strong><br>' +
@@ -805,7 +874,7 @@ function populateReceiveView(data) {
     'Please sign below to confirm receipt.';
   main.insertBefore(banner, main.firstChild);
 
-  // Show carrier signature in read-only mode before the delivery section
+  // Show carrier signature in read-only mode
   if (data.carrierSignature && data.carrierSignature.indexOf('data:image') === 0) {
     var carrierSigBlock = document.createElement('div');
     carrierSigBlock.style.cssText = 'background:white;border:1.5px solid #d8d5cc;border-radius:8px;padding:16px;margin-bottom:20px;';
@@ -848,7 +917,7 @@ function confirmDelivery(esn) {
       esn: esn,
       recvName: recvName,
       recvDatetime: recvDatetime,
-      recvSignature: 'signed',
+      recvSignature: document.getElementById('sig-receiver').toDataURL('image/png'),
       to_email: RECIPIENT,
       pdf_base64: pdfBase64,
       pdf_filename: pdfFilename
@@ -864,19 +933,6 @@ function confirmDelivery(esn) {
   }).catch(function(err) {
     toast('Error: ' + err.message, true);
   });
-}
-
-// ── CONFIG MODAL ──
-function openModal() { document.getElementById('config-modal').classList.add('show'); }
-function closeModal() { document.getElementById('config-modal').classList.remove('show'); }
-function saveConfig() {
-  APPS_SCRIPT_URL = document.getElementById('cfg-apps-url').value.trim();
-  RECIPIENT = document.getElementById('cfg-recipient').value.trim() || 'office@binagora.com';
-  safeSet('apps_script_url', APPS_SCRIPT_URL);
-  safeSet('recipient_email', RECIPIENT);
-  updateEmailStatus();
-  closeModal();
-  toast('Settings saved');
 }
 
 // ── RESET ──
@@ -902,8 +958,7 @@ function resetForm() {
 
 // ── EVENT LISTENERS ──
 document.addEventListener('DOMContentLoaded', function() {
-  initApp();
-  checkReceiveMode();
+  initGoogleAuth();
 
   document.getElementById('btn-next-0').addEventListener('click', function() { next(0); });
   document.getElementById('btn-next-1').addEventListener('click', function() { next(1); });
@@ -917,13 +972,11 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('btn-download').addEventListener('click', downloadPDF);
   document.getElementById('btn-send').addEventListener('click', downloadAndSend);
   document.getElementById('btn-new').addEventListener('click', resetForm);
-  document.getElementById('config-btn').addEventListener('click', openModal);
-  document.getElementById('btn-cancel-modal').addEventListener('click', closeModal);
-  document.getElementById('btn-save-config').addEventListener('click', saveConfig);
   document.getElementById('delivery-toggle').addEventListener('click', toggleDelivery);
   document.getElementById('clear-carrier').addEventListener('click', function() { clearCanvas('sig-carrier'); });
   document.getElementById('clear-receiver').addEventListener('click', function() { clearCanvas('sig-receiver'); });
   document.getElementById('btn-copy-link').addEventListener('click', copyReceiverLink);
+  document.getElementById('btn-signout').addEventListener('click', signOut);
 
   // Auto-fill carrier full name
   document.getElementById('cour-nombre').addEventListener('input', function() {
